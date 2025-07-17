@@ -18,16 +18,15 @@ if (process.env.OPENAI_API_KEY) {
 }
 
 /**
- * Configuración del chatbot
+ * Configuración del chatbot - Optimizada para costos
  */
 const CHATBOT_CONFIG = {
   model: 'gpt-3.5-turbo',
-  maxTokens: 500,
+  maxTokens: 150, // Optimizado para costos (era 500)
   temperature: 0.7,
-  systemPrompt: `Eres un asistente virtual útil y amigable que responde a través de WhatsApp. 
-    Mantén tus respuestas concisas pero informativas, máximo 200 palabras por respuesta.
-    Sé conversacional y natural. Si no sabes algo, admítelo honestamente.
-    Responde siempre en español a menos que te pidan específicamente otro idioma.`
+  systemPrompt: `Eres un asistente virtual útil y amigable que responde por WhatsApp. 
+    Mantén respuestas concisas, máximo 50 palabras.
+    Sé directo pero amigable. Responde en español.`
 };
 
 /**
@@ -42,30 +41,46 @@ const conversations = new Map();
  * @param {string} userId - ID único del usuario (número de teléfono)
  * @returns {Promise<string>} - Respuesta del chatbot
  */
-async function getResponse(message, userId) {
+async function getResponse(message, userId = 'anonymous') {
   try {
-    console.log('🤖 Procesando mensaje con OpenAI...');
-    
-    // Validar que tenemos la API key
+    console.log('\n🧠 === INICIO PROCESAMIENTO OPENAI ===');
+    console.log(`📝 Mensaje recibido: "${message}"`);
+    console.log(`👤 Usuario ID: ${userId}`);
+    console.log(`📏 Longitud del mensaje: ${message.length} caracteres`);
+
+    // Validar configuración
     if (!process.env.OPENAI_API_KEY) {
-      throw new Error('OPENAI_API_KEY no está configurada');
+      console.error('❌ API key de OpenAI no configurada');
+      throw new Error('API key de OpenAI no configurada');
+    }
+
+    if (!openai) {
+      console.error('❌ Cliente de OpenAI no inicializado');
+      throw new Error('Cliente de OpenAI no inicializado');
     }
 
     // Obtener historial de conversación del usuario
     let conversationHistory = conversations.get(userId) || [];
     
+    if (conversationHistory.length === 0) {
+      console.log('🆕 Creando nuevo historial de conversación para usuario');
+    } else {
+      console.log(`📚 Historial existente: ${conversationHistory.length} mensajes`);
+    }
+
     // Agregar mensaje del usuario al historial
     conversationHistory.push({
       role: 'user',
       content: message
     });
 
-    // Mantener solo los últimos 10 mensajes para no exceder límites
-    if (conversationHistory.length > 10) {
-      conversationHistory = conversationHistory.slice(-10);
+    // Mantener solo los últimos 6 mensajes para optimizar costos
+    if (conversationHistory.length > 6) {
+      console.log('✂️  Recortando historial para optimizar costos');
+      conversationHistory = conversationHistory.slice(-6);
     }
 
-    // Preparar mensajes para OpenAI
+    // Preparar mensajes para la API
     const messages = [
       {
         role: 'system',
@@ -74,60 +89,69 @@ async function getResponse(message, userId) {
       ...conversationHistory
     ];
 
-    console.log(`📝 Enviando ${messages.length} mensajes a OpenAI`);
+    console.log(`📤 Enviando ${messages.length} mensajes a OpenAI...`);
+    console.log('💭 Contexto completo:', JSON.stringify(messages, null, 2));
 
-    // Llamar a la API de OpenAI
-    const completion = await openai.chat.completions.create({
+    // Llamada a la API de OpenAI
+    const response = await openai.chat.completions.create({
       model: CHATBOT_CONFIG.model,
       messages: messages,
       max_tokens: CHATBOT_CONFIG.maxTokens,
       temperature: CHATBOT_CONFIG.temperature,
     });
 
-    // Extraer respuesta
-    const aiResponse = completion.choices[0]?.message?.content;
+    console.log('📨 Respuesta cruda de OpenAI:');
+    console.log(JSON.stringify(response, null, 2));
+
+    // Extraer la respuesta
+    const aiMessage = response.choices[0]?.message?.content;
     
-    if (!aiResponse) {
-      throw new Error('No se recibió respuesta válida de OpenAI');
+    if (!aiMessage) {
+      console.error('❌ No se pudo extraer mensaje de la respuesta de OpenAI');
+      throw new Error('Respuesta inválida de OpenAI');
     }
 
-    // Agregar respuesta del asistente al historial
+    console.log(`💬 Mensaje extraído: "${aiMessage}"`);
+    console.log(`📏 Longitud de respuesta: ${aiMessage.length} caracteres`);
+    console.log(`💰 Tokens usados: ${response.usage?.total_tokens || 'No disponible'}`);
+
+    // Agregar respuesta al historial
     conversationHistory.push({
       role: 'assistant',
-      content: aiResponse
+      content: aiMessage
     });
 
     // Guardar historial actualizado
     conversations.set(userId, conversationHistory);
 
-    console.log('✅ Respuesta generada exitosamente');
-    
-    // Log de tokens utilizados
-    if (completion.usage) {
-      console.log(`📊 Tokens utilizados: ${completion.usage.total_tokens} (prompt: ${completion.usage.prompt_tokens}, completion: ${completion.usage.completion_tokens})`);
-    }
+    console.log(`📚 Historial actualizado: ${conversationHistory.length} mensajes`);
+    console.log('🧠 === FIN PROCESAMIENTO OPENAI ===\n');
 
-    return aiResponse.trim();
+    return aiMessage.trim();
 
   } catch (error) {
-    console.error('❌ Error en servicio OpenAI:', error);
-    
-    // Manejar diferentes tipos de errores
+    console.error('\n❌ === ERROR EN OPENAI ===');
+    console.error('🔴 Error tipo:', error.constructor.name);
+    console.error('📋 Mensaje de error:', error.message);
+    console.error('🔍 Código de error:', error.code || 'No disponible');
+    console.error('📊 Detalles completos:', error);
+    console.error('❌ === FIN ERROR OPENAI ===\n');
+
+    // Manejar diferentes tipos de errores de OpenAI
     if (error.code === 'insufficient_quota') {
-      return 'Lo siento, he alcanzado mi límite de uso por hoy. Por favor intenta más tarde.';
+      throw new Error('Sin créditos suficientes en OpenAI. Agrega más créditos en: https://platform.openai.com/account/billing');
+    }
+    
+    if (error.code === 'invalid_api_key') {
+      throw new Error('API key de OpenAI inválida');
     }
     
     if (error.code === 'rate_limit_exceeded') {
-      return 'Estoy recibiendo muchas consultas ahora. Por favor espera un momento e intenta de nuevo.';
-    }
-    
-    if (error.status === 401) {
-      console.error('❌ API key de OpenAI inválida o expirada');
-      return 'Hay un problema con mi configuración. Por favor contacta al administrador.';
+      throw new Error('Límite de rate de OpenAI excedido');
     }
 
     // Error genérico
-    return 'Lo siento, no pude procesar tu mensaje en este momento. Por favor intenta de nuevo.';
+    throw new Error(`Error de OpenAI: ${error.message}`);
   }
 }
 
