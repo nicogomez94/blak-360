@@ -8,14 +8,20 @@ const twilio = require('twilio');
 // Inicializar cliente de Twilio
 let twilioClient;
 
-try {
-  twilioClient = twilio(
-    process.env.TWILIO_ACCOUNT_SID,
-    process.env.TWILIO_AUTH_TOKEN
-  );
-  console.log('✅ Cliente de Twilio inicializado');
-} catch (error) {
-  console.error('❌ Error inicializando cliente de Twilio:', error);
+// Verificar que las credenciales estén configuradas antes de inicializar
+if (process.env.TWILIO_ACCOUNT_SID && process.env.TWILIO_AUTH_TOKEN) {
+  try {
+    twilioClient = twilio(
+      process.env.TWILIO_ACCOUNT_SID,
+      process.env.TWILIO_AUTH_TOKEN
+    );
+    console.log('✅ Cliente de Twilio inicializado');
+  } catch (error) {
+    console.error('❌ Error inicializando cliente de Twilio:', error);
+  }
+} else {
+  console.warn('⚠️  Credenciales de Twilio no configuradas. Cliente no inicializado.');
+  console.warn('📝 Configura TWILIO_ACCOUNT_SID y TWILIO_AUTH_TOKEN en el archivo .env');
 }
 
 /**

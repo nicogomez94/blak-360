@@ -6,9 +6,16 @@
 const OpenAI = require('openai');
 
 // Configurar cliente de OpenAI
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY,
-});
+let openai;
+
+if (process.env.OPENAI_API_KEY) {
+  openai = new OpenAI({
+    apiKey: process.env.OPENAI_API_KEY,
+  });
+  console.log('✅ Cliente de OpenAI inicializado');
+} else {
+  console.warn('⚠️  OPENAI_API_KEY no configurada');
+}
 
 /**
  * Configuración del chatbot
