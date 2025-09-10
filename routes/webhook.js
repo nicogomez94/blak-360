@@ -1,19 +1,19 @@
 /**
- * Rutas para manejar webhooks de WhatsApp desde 360dialog
+ * Rutas para manejar webhooks de WhatsApp
  */
 
 const express = require('express');
 const router = express.Router();
 const openaiService = require('../services/openai');
-const twilioService = require('../services/twilio'); // Ahora es 360dialog service
+const messageService = require('../services/messaging');
 
 /**
  * Webhook principal para recibir mensajes de WhatsApp
- * 360dialog enviará un POST a esta ruta cuando llegue un mensaje
+ * El proveedor enviará un POST a esta ruta cuando llegue un mensaje
  */
 router.post('/whatsapp', async (req, res) => {
   try {
-    console.log('\n🚨 ===== WEBHOOK 360DIALOG RECIBIDO =====');
+    console.log('\n🚨 ===== WEBHOOK RECIBIDO =====');
     console.log('🕐 Timestamp:', new Date().toISOString());
     console.log('🌐 Método:', req.method);
     console.log('📍 URL:', req.url);
@@ -26,7 +26,7 @@ router.post('/whatsapp', async (req, res) => {
     console.log('- Body completo:');
     console.log(JSON.stringify(req.body, null, 2));
     
-    // Responder inmediatamente a 360dialog para confirmar recepción
+    // Responder inmediatamente para confirmar recepción
     res.status(200).send('OK');
     
     // Procesar el mensaje de forma asíncrona
@@ -65,9 +65,9 @@ router.post('/whatsapp', async (req, res) => {
       console.log('✅ Formato detectado: Webhook con mensaje único');
     }
     
-    // Formato 3: Formato similar a Twilio
+    // Formato 3: Formato estándar (Body/From)
     if (webhookData.Body || webhookData.From) {
-      console.log('✅ Formato detectado: Similar a Twilio (Body/From)');
+      console.log('✅ Formato detectado: Similar a estándar (Body/From)');
     }
     
     // Formato 4: Verificar entry (formato de Facebook/Meta)
@@ -86,7 +86,7 @@ router.post('/whatsapp', async (req, res) => {
     // Intentar extraer mensaje según diferentes formatos
     let messageText, fromNumber, messageId, messageType, contactName;
     
-    // Formato 360dialog estándar
+    // Formato estándar
     if (webhookData.messages && webhookData.messages.length > 0) {
       const message = webhookData.messages[0];
       const contact = webhookData.contacts?.[0];
@@ -97,9 +97,9 @@ router.post('/whatsapp', async (req, res) => {
       fromNumber = message.from;
       contactName = contact?.profile?.name || 'Sin nombre';
       
-      console.log('📱 Formato 360dialog detectado y procesado');
+      console.log('📱 Formato estándar detectado y procesado');
     }
-    // Formato Twilio-like
+    // Formato estándar
     else if (webhookData.Body && webhookData.From) {
       messageText = webhookData.Body;
       fromNumber = webhookData.From.replace('whatsapp:', '');
@@ -107,7 +107,7 @@ router.post('/whatsapp', async (req, res) => {
       messageType = 'text';
       contactName = webhookData.ProfileName || 'Sin nombre';
       
-      console.log('📱 Formato Twilio-like detectado y procesado');
+      console.log('📱 Formato estándar detectado y procesado');
     }
     // Formato de Facebook/Meta webhook
     else if (webhookData.entry && webhookData.entry[0]?.changes) {
@@ -155,18 +155,17 @@ router.post('/whatsapp', async (req, res) => {
     console.log(`🤖 Respuesta completa: "${aiResponse}"`);
     console.log(`📏 Longitud: ${aiResponse.length} caracteres`);
 
-    // ===== LOG: Enviando respuesta por WhatsApp =====
-    console.log('\n📤 ===== ENVIANDO RESPUESTA POR WHATSAPP =====');
+    console.log('📤 ===== ENVIANDO RESPUESTA POR WHATSAPP =====');
     console.log(`📱 Destinatario: whatsapp:+${fromNumber}`);
     console.log(`💬 Mensaje final: "${aiResponse}"`);
-    console.log('⏳ Enviando via 360dialog...');
+    console.log('⏳ Enviando mensaje...');
     
-    const result360 = await twilioService.sendMessage(`whatsapp:+${fromNumber}`, aiResponse);
+    const result = await messageService.sendMessage(`whatsapp:+${fromNumber}`, aiResponse);
     
     // ===== LOG: Resultado del envío =====
     console.log('\n✅ ===== RESULTADO DEL ENVÍO =====');
-    console.log('📤 Mensaje enviado exitosamente a WhatsApp via 360dialog');
-    console.log('🆔 360dialog Result:', JSON.stringify(result360, null, 2));
+    console.log('📤 Mensaje enviado exitosamente a WhatsApp');
+    console.log('🆔 Result:', JSON.stringify(result, null, 2));
     console.log('🏁 ===== FIN PROCESAMIENTO EXITOSO =====\n');
 
     // Responder a 360dialog con 200 OK
@@ -183,7 +182,7 @@ router.post('/whatsapp', async (req, res) => {
       if (req.body.From || req.body.messages?.[0]?.from) {
         const errorMessage = 'Lo siento, hubo un problema procesando tu mensaje. Por favor intenta de nuevo.';
         const phoneNumber = req.body.From || `whatsapp:+${req.body.messages[0].from}`;
-        await twilioService.sendMessage(phoneNumber, errorMessage);
+        await messageService.sendMessage(phoneNumber, errorMessage);
       }
     } catch (sendError) {
       console.error('❌ Error enviando mensaje de error:', sendError);
@@ -242,7 +241,7 @@ router.post('/test', async (req, res) => {
     const aiResponse = await openaiService.getResponse(message, phone);
     
     // Enviar por WhatsApp
-    await twilioService.sendMessage(phone, aiResponse);
+    await messageService.sendMessage(phone, aiResponse);
 
     res.json({
       success: true,

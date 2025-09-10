@@ -3,8 +3,8 @@
  * Maneja el envío de mensajes de WhatsApp
  */
 
-const axios = require('axios'); // Cambiar fetch por axios
-//test
+const axios = require('axios');
+
 // Configuración de 360dialog
 const D360_API_KEY = process.env.D360_API_KEY;
 const D360_API_URL = process.env.D360_API_URL || 'https://waba-v2.360dialog.io';
@@ -51,9 +51,9 @@ async function sendMessage(to, message) {
       message = message.substring(0, 4093) + '...';
     }
 
-    // Payload correcto para 360dialog API - agregando messaging_product requerido
+    // Payload para 360dialog API
     const payload = {
-      messaging_product: "whatsapp", // Parámetro requerido según error 100
+      messaging_product: "whatsapp",
       to: phoneNumber,
       type: "text",
       text: {
@@ -62,10 +62,8 @@ async function sendMessage(to, message) {
     };
 
     console.log('💬 Mensaje:', `"${message}"`);
-    console.log('📦 Payload 360dialog:', JSON.stringify(payload, null, 2));
+    console.log('📦 Payload:', JSON.stringify(payload, null, 2));
 
-    // Usar axios con el endpoint exacto según soporte: /messages (sin /v1)
-    // Asegurándonos de usar exactamente la URL que especificó el soporte
     const apiUrl = `${D360_API_URL}/messages`;
     console.log('🌐 URL completa:', apiUrl);
     
@@ -82,20 +80,20 @@ async function sendMessage(to, message) {
     });
 
     console.log(`📊 Status: ${response.status}`);
-    console.log('📨 Respuesta de 360dialog:', JSON.stringify(response.data, null, 2));
+    console.log('📨 Respuesta:', JSON.stringify(response.data, null, 2));
     console.log('✅ Mensaje enviado exitosamente');
 
     return response.data;
 
   } catch (error) {
-    console.error('❌ Error enviando mensaje con 360dialog:');
+    console.error('❌ Error enviando mensaje:');
     
     if (error.response) {
       // Error de respuesta HTTP
       console.error(`📊 Status: ${error.response.status}`);
       console.error('📋 Error data:', JSON.stringify(error.response.data, null, 2));
       console.error('📋 Error headers:', JSON.stringify(error.response.headers, null, 2));
-      throw new Error(`360dialog API Error: ${error.response.status} - ${JSON.stringify(error.response.data)}`);
+      throw new Error(`API Error: ${error.response.status} - ${JSON.stringify(error.response.data)}`);
     } else if (error.request) {
       // Error de red
       console.error('🌐 Error de red:', error.request);

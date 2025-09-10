@@ -1,10 +1,10 @@
 # WhatsApp Chatbot Backend
 
-Backend para chatbot de WhatsApp usando Node.js, Express, Twilio y OpenAI GPT-3.5-turbo.
+Backend para chatbot de WhatsApp usando Node.js, Express y OpenAI GPT-3.5-turbo.
 
 ## 🚀 Características
 
-- ✅ Recibe mensajes de WhatsApp vía webhook de Twilio
+- ✅ Recibe mensajes de WhatsApp vía webhook
 - 🤖 Procesa mensajes con OpenAI GPT-3.5-turbo
 - 📱 Envía respuestas automáticas por WhatsApp
 - 💾 Mantiene historial de conversación por usuario
@@ -15,7 +15,7 @@ Backend para chatbot de WhatsApp usando Node.js, Express, Twilio y OpenAI GPT-3.
 ## 📋 Requisitos
 
 - Node.js 16+ 
-- Cuenta de Twilio con WhatsApp Sandbox configurado
+- Cuenta de proveedor de WhatsApp configurada
 - API Key de OpenAI
 - ngrok (para desarrollo local) o servidor con HTTPS
 
@@ -38,10 +38,9 @@ Editar `.env` con tus credenciales:
 # OpenAI
 OPENAI_API_KEY=sk-tu-api-key-de-openai
 
-# Twilio
-TWILIO_ACCOUNT_SID=ACxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
-TWILIO_AUTH_TOKEN=tu_auth_token_de_twilio
-TWILIO_PHONE_NUMBER=whatsapp:+14155238886
+# Messaging API (ejemplo con 360dialog)
+D360_API_KEY=tu_api_key_aqui
+D360_API_URL=https://waba-v2.360dialog.io
 
 # Servidor
 PORT=3000
@@ -49,18 +48,16 @@ NODE_ENV=development
 DEBUG=true
 ```
 
-## 🔧 Configuración de Twilio
+## 🔧 Configuración del Proveedor de WhatsApp
 
-### 1. Configurar Twilio Sandbox
-1. Ve a [Twilio Console](https://console.twilio.com/)
-2. Navega a **Messaging > Try it out > Send a WhatsApp message**
-3. Sigue las instrucciones para configurar el sandbox
-4. Obtén tus credenciales: Account SID y Auth Token
+### 1. Configurar tu proveedor (ejemplo: 360dialog)
+1. Obtén una cuenta con un proveedor de WhatsApp Business API
+2. Configura tu número de WhatsApp Business
+3. Obtén tu API key y URL del endpoint
 
 ### 2. Configurar Webhook
-1. En Twilio Console, ve a **Messaging > Settings > WhatsApp sandbox settings**
-2. En "When a message comes in", configurar:
-   - **URL**: `https://tu-dominio.com/webhook/whatsapp`
+1. En la configuración de tu proveedor, establece:
+   - **URL del Webhook**: `https://tu-dominio.com/webhook/whatsapp`
    - **HTTP Method**: POST
 
 ### Para desarrollo local con ngrok:
@@ -132,7 +129,7 @@ curl -X POST http://localhost:3000/webhook/test \
 │   └── webhook.js           # Rutas para webhooks de WhatsApp
 ├── services/
 │   ├── openai.js           # Servicio para OpenAI API
-│   └── twilio.js           # Servicio para Twilio API
+│   └── messaging.js        # Servicio para Messaging API
 ├── .env.example            # Ejemplo de variables de entorno
 ├── package.json            # Dependencias y scripts
 └── README.md              # Este archivo
@@ -175,13 +172,13 @@ El sistema incluye logging detallado:
    - Verificar que la API key sea válida
    - Confirmar que tienes créditos disponibles
 
-2. **Error de Twilio webhook**
+2. **Error de webhook**
    - Verificar que la URL del webhook sea accesible públicamente
    - Confirmar que el método sea POST
-   - Verificar credenciales de Twilio
+   - Verificar credenciales del proveedor
 
 3. **Mensaje no llega**
-   - Verificar que el número esté registrado en Twilio Sandbox
+   - Verificar que el número esté configurado correctamente
    - Confirmar el formato del número (whatsapp:+1234567890)
 
 ### Variables de debug
@@ -195,7 +192,7 @@ NODE_ENV=development  # Mostrar errores detallados
 - ✅ Variables de entorno para credenciales
 - ✅ Validación de entrada de datos
 - ✅ Manejo de errores sin exponer información sensible
-- ✅ Rate limiting implícito por OpenAI y Twilio
+- ✅ Rate limiting implícito por OpenAI y el proveedor de mensajería
 - ⚠️ Para producción, considera agregar autenticación de webhook
 
 ## 📈 Escalabilidad
@@ -231,4 +228,4 @@ Para reportar bugs o solicitar características:
 
 **¡Tu chatbot de WhatsApp está listo! 🎉**
 
-Envía un mensaje al número de Twilio Sandbox y disfruta conversando con tu AI assistant.
+Envía un mensaje a tu número de WhatsApp Business y disfruta conversando con tu AI assistant.

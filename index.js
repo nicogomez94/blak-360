@@ -1,6 +1,6 @@
 /**
  * Servidor principal para el chatbot de WhatsApp
- * Integra 360dialog, OpenAI y Express
+ * Integra OpenAI y Express
  */
 
 require('dotenv').config();
@@ -8,7 +8,7 @@ const express = require('express');
 const bodyParser = require('body-parser');
 const webhookRoutes = require('./routes/webhook');
 const openaiService = require('./services/openai');
-const twilioService = require('./services/twilio');
+const messageService = require('./services/messaging');
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -59,15 +59,15 @@ app.use('*', (req, res, next) => {
   next();
 });
 
-// Ruta para la raíz (formato Twilio)
+// Ruta para la raíz (formato estándar)
 app.post('/', async (req, res) => {
   console.log('\n🏠 ===== WEBHOOK EN RUTA RAÍZ (/) =====');
-  console.log('🎯 Procesando como formato Twilio...');
+  console.log('🎯 Procesando como formato estándar...');
   
   try {
     const { From, To, Body, MessageSid, ProfileName, WaId } = req.body;
     
-    console.log('📱 INFORMACIÓN TWILIO:');
+    console.log('📱 INFORMACIÓN ESTÁNDAR:');
     console.log(`👤 De: ${From}`);
     console.log(`📞 Para: ${To}`);
     console.log(`💬 Mensaje: "${Body}"`);
@@ -78,9 +78,9 @@ app.post('/', async (req, res) => {
     }
 
     const aiResponse = await openaiService.getResponse(Body, From);
-    await twilioService.sendMessage(From, aiResponse);
+    await messageService.sendMessage(From, aiResponse);
     
-    console.log('✅ Mensaje procesado exitosamente (Twilio format)');
+    console.log('✅ Mensaje procesado exitosamente (formato estándar)');
     res.status(200).send('OK');
 
   } catch (error) {
@@ -89,17 +89,17 @@ app.post('/', async (req, res) => {
   }
 });
 
-// Ruta específica para 360dialog
+// Ruta específica para webhooks de WhatsApp
 app.post('/webhook/whatsapp', async (req, res) => {
-  console.log('\n📱 ===== WEBHOOK 360DIALOG (/webhook/whatsapp) =====');
-  console.log('🎯 Procesando como formato 360dialog...');
+  console.log('\n📱 ===== WEBHOOK WHATSAPP (/webhook/whatsapp) =====');
+  console.log('🎯 Procesando webhook de WhatsApp...');
   
   try {
     const webhookData = req.body;
     
-    console.log('📦 Datos 360dialog completos:', JSON.stringify(webhookData, null, 2));
+    console.log('📦 Datos completos:', JSON.stringify(webhookData, null, 2));
     
-    // Intentar extraer mensaje según formato 360dialog
+    // Intentar extraer mensaje según diferentes formatos
     let messageText, fromNumber, messageId;
     
     // Formato 1: webhookData.messages (array)
@@ -140,13 +140,13 @@ app.post('/webhook/whatsapp', async (req, res) => {
     }
 
     const aiResponse = await openaiService.getResponse(messageText.trim(), `whatsapp:+${fromNumber}`);
-    await twilioService.sendMessage(`whatsapp:+${fromNumber}`, aiResponse);
+    await messageService.sendMessage(`whatsapp:+${fromNumber}`, aiResponse);
     
-    console.log('✅ Mensaje procesado exitosamente (360dialog format)');
+    console.log('✅ Mensaje procesado exitosamente');
     res.status(200).send('OK');
 
   } catch (error) {
-    console.error('❌ Error en webhook 360dialog:', error);
+    console.error('❌ Error en webhook:', error);
     res.status(200).send('Error procesado');
   }
 });
@@ -176,7 +176,7 @@ app.get('/health', (req, res) => {
     environment: {
       NODE_ENV: process.env.NODE_ENV || 'development',
       openai_configured: !!process.env.OPENAI_API_KEY,
-      d360_configured: !!process.env.D360_API_KEY
+      messaging_configured: !!process.env.D360_API_KEY
     }
   });
 });
@@ -185,11 +185,11 @@ app.get('/health', (req, res) => {
 app.get('/', (req, res) => {
   console.log('📋 Información general solicitada');
   res.json({
-    message: 'Chatbot de WhatsApp con OpenAI y 360dialog',
+    message: 'Chatbot de WhatsApp con OpenAI',
     version: '2.0.0',
     endpoints: {
-      'webhook_360dialog': 'POST /webhook/whatsapp',
-      'webhook_twilio': 'POST /',
+      'webhook_whatsapp': 'POST /webhook/whatsapp',
+      'webhook_standard': 'POST /',
       'health': 'GET /health'
     },
     status: 'active'
@@ -210,15 +210,15 @@ app.listen(PORT, () => {
   console.log('\n🚀 ==========================================');
   console.log(`🤖 Chatbot de WhatsApp iniciado`);
   console.log(`🌐 Servidor corriendo en puerto ${PORT}`);
-  console.log(`📡 Webhook 360dialog: http://localhost:${PORT}/webhook/whatsapp`);
-  console.log(`📡 Webhook Twilio: http://localhost:${PORT}/`);
+  console.log(`📡 Webhook WhatsApp: http://localhost:${PORT}/webhook/whatsapp`);
+  console.log(`📡 Webhook Estándar: http://localhost:${PORT}/`);
   console.log(`🏥 Health check: http://localhost:${PORT}/health`);
   console.log('🚀 ==========================================\n');
 
   // Verificar configuración
   const config = [];
   if (process.env.OPENAI_API_KEY) config.push('✅ OpenAI');
-  if (process.env.D360_API_KEY) config.push('✅ 360dialog');
+  if (process.env.D360_API_KEY) config.push('✅ Messaging API');
   
   console.log('📋 Configuración:', config.join(', '));
   

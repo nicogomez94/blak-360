@@ -1,7 +1,7 @@
 {
   "name": "whatsapp-chatbot-backend",
   "version": "1.0.0",
-  "description": "Backend para chatbot de WhatsApp usando Twilio y OpenAI",
+  "description": "Backend para chatbot de WhatsApp usando OpenAI",
   "main": "index.js",
   "scripts": {
     "start": "node index.js",
@@ -11,7 +11,6 @@
   "keywords": [
     "whatsapp",
     "chatbot",
-    "twilio",
     "openai",
     "express",
     "nodejs"
