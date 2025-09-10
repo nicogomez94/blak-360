@@ -33,18 +33,28 @@ async function sendMessage(to, message) {
       throw new Error('D360_API_KEY no configurada');
     }
 
-    // Formatear número: quitar prefijo whatsapp: y +
-    const phoneNumber = to.replace('whatsapp:', '').replace('+', '');
+    // Formatear número: usar formato internacional sin + (estándar 360dialog)
+    let phoneNumber = to.replace('whatsapp:', '').replace('+', '');
+    
+    // Asegurar formato internacional completo para Argentina
+    if (!phoneNumber.startsWith('54')) {
+      if (phoneNumber.startsWith('9')) {
+        phoneNumber = '54' + phoneNumber; // 549XXXXXXXXX
+      }
+    }
+    
     console.log(`📱 Enviando a: ${phoneNumber}`);
+    console.log(`📱 Formato original: ${to}`);
 
     if (message.length > 4096) {
       console.warn('⚠️ Mensaje muy largo, recortando...');
       message = message.substring(0, 4093) + '...';
     }
 
-    // Payload correcto para 360dialog API v2
+    // Payload correcto para 360dialog API - agregando messaging_product requerido
     const payload = {
-      to: phoneNumber,  // Solo el número sin prefijos
+      messaging_product: "whatsapp", // Parámetro requerido según error 100
+      to: phoneNumber,
       type: "text",
       text: {
         body: message
@@ -54,11 +64,20 @@ async function sendMessage(to, message) {
     console.log('💬 Mensaje:', `"${message}"`);
     console.log('📦 Payload 360dialog:', JSON.stringify(payload, null, 2));
 
-    // Usar axios en lugar de fetch
-    const response = await axios.post(`${D360_API_URL}/v1/messages`, payload, {
+    // Usar axios con el endpoint exacto según soporte: /messages (sin /v1)
+    // Asegurándonos de usar exactamente la URL que especificó el soporte
+    const apiUrl = `${D360_API_URL}/messages`;
+    console.log('🌐 URL completa:', apiUrl);
+    
+    const response = await axios.post(apiUrl, payload, {
       headers: {
         'Content-Type': 'application/json',
-        'D360-API-KEY': D360_API_KEY
+        'D360-API-KEY': D360_API_KEY,
+        'Accept': 'application/json'
+      },
+      timeout: 15000, // 15 segundos de timeout
+      validateStatus: function (status) {
+        return status < 500; // Acepta cualquier status < 500 para debugging
       }
     });
 
