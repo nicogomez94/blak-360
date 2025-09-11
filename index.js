@@ -7,8 +7,10 @@ require('dotenv').config();
 const express = require('express');
 const bodyParser = require('body-parser');
 const webhookRoutes = require('./routes/webhook');
+const adminRoutes = require('./routes/admin');
 const openaiService = require('./services/openai');
 const messageService = require('./services/messaging');
+const conversationService = require('./services/conversation');
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -100,7 +102,7 @@ app.post('/webhook/whatsapp', async (req, res) => {
     console.log('📦 Datos completos:', JSON.stringify(webhookData, null, 2));
     
     // Intentar extraer mensaje según diferentes formatos
-    let messageText, fromNumber, messageId;
+    let messageText, fromNumber, messageId, contactName;
     
     // Formato 1: webhookData.messages (array)
     if (webhookData.messages && webhookData.messages.length > 0) {
@@ -108,6 +110,7 @@ app.post('/webhook/whatsapp', async (req, res) => {
       messageText = message.text?.body;
       fromNumber = message.from;
       messageId = message.id;
+      contactName = webhookData.contacts?.[0]?.profile?.name || 'Sin nombre';
       console.log('✅ Formato messages[] detectado');
     }
     // Formato 2: webhookData.message (objeto único)
@@ -115,6 +118,7 @@ app.post('/webhook/whatsapp', async (req, res) => {
       messageText = webhookData.message.text?.body;
       fromNumber = webhookData.message.from;
       messageId = webhookData.message.id;
+      contactName = 'Sin nombre';
       console.log('✅ Formato message único detectado');
     }
     // Formato 3: Webhook de Facebook/Meta
@@ -125,12 +129,14 @@ app.post('/webhook/whatsapp', async (req, res) => {
         messageText = message.text?.body;
         fromNumber = message.from;
         messageId = message.id;
+        contactName = change.value.contacts?.[0]?.profile?.name || 'Sin nombre';
         console.log('✅ Formato Facebook/Meta detectado');
       }
     }
     
     console.log('📝 DATOS EXTRAÍDOS:');
     console.log(`👤 De: ${fromNumber}`);
+    console.log(`👥 Nombre: ${contactName}`);
     console.log(`🆔 MessageId: ${messageId}`);
     console.log(`💬 Texto: "${messageText}"`);
     
@@ -139,8 +145,45 @@ app.post('/webhook/whatsapp', async (req, res) => {
       return res.status(200).send('OK');
     }
 
+    // ===== GESTIÓN DE CONVERSACIONES =====
+    console.log('\n🎯 ===== GESTIÓN DE CONVERSACIÓN =====');
+    
+    // Registrar mensaje del usuario
+    conversationService.addMessage(fromNumber, messageText.trim(), 'user', contactName);
+    
+    // Verificar si la conversación está en modo manual
+    const isManual = conversationService.isManualMode(fromNumber);
+    
+    if (isManual) {
+      console.log('🔧 Conversación en modo MANUAL - No procesando con IA');
+      console.log(`👤 Usuario: ${contactName} (${fromNumber})`);
+      console.log(`💬 Mensaje: "${messageText.trim()}"`);
+      console.log('⏳ Esperando intervención manual del administrador...');
+      
+      // Solo responder con confirmación si no hay actividad reciente del admin
+      const conversation = conversationService.getConversation(fromNumber);
+      const recentMessages = conversationService.getMessageHistory(fromNumber, 3);
+      const hasRecentAdminMessage = recentMessages.some(msg => 
+        msg.sender === 'admin' && 
+        (new Date() - new Date(msg.timestamp)) < 5 * 60 * 1000 // 5 minutos
+      );
+      
+      if (!hasRecentAdminMessage) {
+        const waitMessage = "Gracias por tu mensaje. Un agente te atenderá en breve. 👨‍💼";
+        await messageService.sendMessage(`whatsapp:+${fromNumber}`, waitMessage);
+        conversationService.addMessage(fromNumber, waitMessage, 'ai', contactName);
+      }
+      
+      return res.status(200).send('OK - Modo manual');
+    }
+    
+    console.log('🤖 Conversación en modo AUTOMÁTICO - Procesando con IA');
+
     const aiResponse = await openaiService.getResponse(messageText.trim(), `whatsapp:+${fromNumber}`);
     await messageService.sendMessage(`whatsapp:+${fromNumber}`, aiResponse);
+    
+    // Registrar respuesta de la IA
+    conversationService.addMessage(fromNumber, aiResponse, 'ai', contactName);
     
     console.log('✅ Mensaje procesado exitosamente');
     res.status(200).send('OK');
@@ -164,6 +207,9 @@ app.post('*', (req, res) => {
 
 // Rutas del webhook (mantener para compatibilidad)
 app.use('/webhook', webhookRoutes);
+
+// Rutas para el panel de administración
+app.use('/admin', adminRoutes);
 
 // Ruta de health check
 app.get('/health', (req, res) => {
@@ -212,7 +258,8 @@ app.listen(PORT, () => {
   console.log(`🌐 Servidor corriendo en puerto ${PORT}`);
   console.log(`📡 Webhook WhatsApp: http://localhost:${PORT}/webhook/whatsapp`);
   console.log(`📡 Webhook Estándar: http://localhost:${PORT}/`);
-  console.log(`🏥 Health check: http://localhost:${PORT}/health`);
+  console.log(`�️ Dashboard Admin: http://localhost:${PORT}/admin`);
+  console.log(`�🏥 Health check: http://localhost:${PORT}/health`);
   console.log('🚀 ==========================================\n');
 
   // Verificar configuración

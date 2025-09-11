@@ -6,6 +6,7 @@ const express = require('express');
 const router = express.Router();
 const openaiService = require('../services/openai');
 const messageService = require('../services/messaging');
+const conversationService = require('../services/conversation');
 
 /**
  * Webhook principal para recibir mensajes de WhatsApp
@@ -138,6 +139,40 @@ router.post('/whatsapp', async (req, res) => {
       return res.status(200).send('OK');
     }
 
+    // ===== GESTIÓN DE CONVERSACIONES =====
+    console.log('\n🎯 ===== GESTIÓN DE CONVERSACIÓN =====');
+    
+    // Registrar mensaje del usuario
+    conversationService.addMessage(fromNumber, messageText.trim(), 'user', contactName);
+    
+    // Verificar si la conversación está en modo manual
+    const isManual = conversationService.isManualMode(fromNumber);
+    
+    if (isManual) {
+      console.log('🔧 Conversación en modo MANUAL - No procesando con IA');
+      console.log(`👤 Usuario: ${contactName} (${fromNumber})`);
+      console.log(`💬 Mensaje: "${messageText.trim()}"`);
+      console.log('⏳ Esperando intervención manual del administrador...');
+      
+      // Solo responder con confirmación si no hay actividad reciente del admin
+      const conversation = conversationService.getConversation(fromNumber);
+      const recentMessages = conversationService.getMessageHistory(fromNumber, 3);
+      const hasRecentAdminMessage = recentMessages.some(msg => 
+        msg.sender === 'admin' && 
+        (new Date() - new Date(msg.timestamp)) < 5 * 60 * 1000 // 5 minutos
+      );
+      
+      if (!hasRecentAdminMessage) {
+        const waitMessage = "Gracias por tu mensaje. Un agente te atenderá en breve. 👨‍💼";
+        await messageService.sendMessage(`whatsapp:+${fromNumber}`, waitMessage);
+        conversationService.addMessage(fromNumber, waitMessage, 'ai', contactName);
+      }
+      
+      return res.status(200).send('OK - Modo manual');
+    }
+    
+    console.log('🤖 Conversación en modo AUTOMÁTICO - Procesando con IA');
+
     // ===== LOG: Texto que se enviará a OpenAI =====
     console.log('\n🤖 ===== ENVIANDO A OPENAI =====');
     console.log(`📝 Texto a procesar: "${messageText.trim()}"`);
@@ -161,6 +196,9 @@ router.post('/whatsapp', async (req, res) => {
     console.log('⏳ Enviando mensaje...');
     
     const result = await messageService.sendMessage(`whatsapp:+${fromNumber}`, aiResponse);
+    
+    // Registrar respuesta de la IA
+    conversationService.addMessage(fromNumber, aiResponse, 'ai', contactName);
     
     // ===== LOG: Resultado del envío =====
     console.log('\n✅ ===== RESULTADO DEL ENVÍO =====');

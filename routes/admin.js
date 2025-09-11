@@ -1,0 +1,477 @@
+/**
+ * Rutas para el dashboard de administración
+ */
+
+const express = require('express');
+const router = express.Router();
+const conversationService = require('../services/conversation');
+const messageService = require('../services/messaging');
+
+/**
+ * Dashboard principal - Página HTML
+ */
+router.get('/', (req, res) => {
+  const html = `
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard - WhatsApp Bot</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { 
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #f5f5f5;
+            color: #333;
+        }
+        .header {
+            background: #25D366;
+            color: white;
+            padding: 1rem 2rem;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .container { max-width: 1200px; margin: 2rem auto; padding: 0 1rem; }
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1rem;
+            margin-bottom: 2rem;
+        }
+        .stat-card {
+            background: white;
+            padding: 1.5rem;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            text-align: center;
+        }
+        .stat-number { font-size: 2rem; font-weight: bold; color: #25D366; }
+        .stat-label { color: #666; margin-top: 0.5rem; }
+        .conversations {
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+        .conversations-header {
+            background: #f8f9fa;
+            padding: 1rem 1.5rem;
+            border-bottom: 1px solid #eee;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .refresh-btn {
+            background: #25D366;
+            color: white;
+            border: none;
+            padding: 0.5rem 1rem;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        .conversation {
+            padding: 1rem 1.5rem;
+            border-bottom: 1px solid #eee;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .conversation:hover { background: #f8f9fa; }
+        .conversation-info h3 { margin-bottom: 0.25rem; }
+        .conversation-meta { color: #666; font-size: 0.9rem; }
+        .conversation-actions {
+            display: flex;
+            gap: 0.5rem;
+        }
+        .btn {
+            padding: 0.5rem 1rem;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 0.9rem;
+        }
+        .btn-manual { background: #ff6b6b; color: white; }
+        .btn-auto { background: #51cf66; color: white; }
+        .btn-view { background: #339af0; color: white; }
+        .manual-mode { border-left: 4px solid #ff6b6b; }
+        .auto-mode { border-left: 4px solid #51cf66; }
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.5);
+            z-index: 1000;
+        }
+        .modal-content {
+            background: white;
+            margin: 5% auto;
+            padding: 2rem;
+            width: 80%;
+            max-width: 600px;
+            border-radius: 8px;
+            max-height: 80vh;
+            overflow-y: auto;
+        }
+        .close {
+            float: right;
+            font-size: 1.5rem;
+            cursor: pointer;
+        }
+        .message {
+            margin: 1rem 0;
+            padding: 1rem;
+            border-radius: 8px;
+        }
+        .message-user { background: #e3f2fd; }
+        .message-ai { background: #e8f5e8; }
+        .message-admin { background: #fff3e0; }
+        .send-message {
+            margin-top: 1rem;
+            display: flex;
+            gap: 0.5rem;
+        }
+        .send-message input {
+            flex: 1;
+            padding: 0.5rem;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>🤖 Dashboard WhatsApp Bot</h1>
+        <p>Gestión de conversaciones en tiempo real</p>
+    </div>
+
+    <div class="container">
+        <div class="stats" id="stats">
+            <!-- Se carga dinámicamente -->
+        </div>
+
+        <div class="conversations">
+            <div class="conversations-header">
+                <h2>Conversaciones Activas</h2>
+                <button class="refresh-btn" onclick="loadData()">🔄 Actualizar</button>
+            </div>
+            <div id="conversations-list">
+                <!-- Se carga dinámicamente -->
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal para ver conversación -->
+    <div id="conversationModal" class="modal">
+        <div class="modal-content">
+            <span class="close" onclick="closeModal()">&times;</span>
+            <h2 id="modalTitle">Conversación</h2>
+            <div id="modalMessages"></div>
+            <div class="send-message">
+                <input type="text" id="messageInput" placeholder="Escribe tu mensaje...">
+                <button class="btn btn-auto" onclick="sendMessage()">Enviar</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let currentConversation = null;
+
+        async function loadData() {
+            try {
+                // Cargar estadísticas
+                const statsResponse = await fetch('/admin/stats');
+                const stats = await statsResponse.json();
+                
+                document.getElementById('stats').innerHTML = \`
+                    <div class="stat-card">
+                        <div class="stat-number">\${stats.totalConversations}</div>
+                        <div class="stat-label">Total Conversaciones</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-number">\${stats.activeToday}</div>
+                        <div class="stat-label">Activas Hoy</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-number">\${stats.manualMode}</div>
+                        <div class="stat-label">Modo Manual</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-number">\${stats.autoMode}</div>
+                        <div class="stat-label">Modo Automático</div>
+                    </div>
+                \`;
+
+                // Cargar conversaciones
+                const conversationsResponse = await fetch('/admin/conversations');
+                const conversations = await conversationsResponse.json();
+                
+                const conversationsList = document.getElementById('conversations-list');
+                
+                if (conversations.length === 0) {
+                    conversationsList.innerHTML = '<div style="padding: 2rem; text-align: center; color: #666;">No hay conversaciones activas</div>';
+                    return;
+                }
+                
+                conversationsList.innerHTML = conversations.map(conv => \`
+                    <div class="conversation \${conv.isManualMode ? 'manual-mode' : 'auto-mode'}">
+                        <div class="conversation-info">
+                            <h3>\${conv.contactName} (\${conv.phoneNumber})</h3>
+                            <div class="conversation-meta">
+                                \${conv.isManualMode ? '🔧 Modo Manual' : '🤖 Modo Automático'} | 
+                                \${conv.messageCount} mensajes | 
+                                \${new Date(conv.lastActivity).toLocaleString()}
+                            </div>
+                        </div>
+                        <div class="conversation-actions">
+                            <button class="btn btn-view" onclick="viewConversation('\${conv.phoneNumber}')">Ver</button>
+                            \${conv.isManualMode ? 
+                                \`<button class="btn btn-auto" onclick="setMode('\${conv.phoneNumber}', 'auto')">Auto</button>\` :
+                                \`<button class="btn btn-manual" onclick="setMode('\${conv.phoneNumber}', 'manual')">Manual</button>\`
+                            }
+                        </div>
+                    </div>
+                \`).join('');
+                
+            } catch (error) {
+                console.error('Error cargando datos:', error);
+            }
+        }
+
+        async function setMode(phoneNumber, mode) {
+            try {
+                const response = await fetch(\`/admin/\${mode === 'manual' ? 'manual' : 'auto'}/\${phoneNumber}\`, {
+                    method: 'POST'
+                });
+                
+                if (response.ok) {
+                    loadData(); // Recargar datos
+                } else {
+                    alert('Error cambiando modo');
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                alert('Error cambiando modo');
+            }
+        }
+
+        async function viewConversation(phoneNumber) {
+            try {
+                currentConversation = phoneNumber;
+                const response = await fetch(\`/admin/conversation/\${phoneNumber}\`);
+                const data = await response.json();
+                
+                document.getElementById('modalTitle').textContent = \`\${data.conversation.contactName} (\${phoneNumber})\`;
+                
+                const messagesDiv = document.getElementById('modalMessages');
+                messagesDiv.innerHTML = data.messages.map(msg => \`
+                    <div class="message message-\${msg.sender}">
+                        <strong>\${msg.sender === 'user' ? data.conversation.contactName : (msg.sender === 'ai' ? 'IA' : 'Admin')}:</strong>
+                        <div>\${msg.text}</div>
+                        <small>\${new Date(msg.timestamp).toLocaleString()}</small>
+                    </div>
+                \`).join('');
+                
+                document.getElementById('conversationModal').style.display = 'block';
+                messagesDiv.scrollTop = messagesDiv.scrollHeight;
+                
+            } catch (error) {
+                console.error('Error:', error);
+                alert('Error cargando conversación');
+            }
+        }
+
+        async function sendMessage() {
+            const input = document.getElementById('messageInput');
+            const message = input.value.trim();
+            
+            if (!message || !currentConversation) return;
+            
+            try {
+                const response = await fetch(\`/admin/send/\${currentConversation}\`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ message })
+                });
+                
+                if (response.ok) {
+                    input.value = '';
+                    // Activar modo manual automáticamente
+                    await setMode(currentConversation, 'manual');
+                    // Recargar conversación
+                    await viewConversation(currentConversation);
+                } else {
+                    alert('Error enviando mensaje');
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                alert('Error enviando mensaje');
+            }
+        }
+
+        function closeModal() {
+            document.getElementById('conversationModal').style.display = 'none';
+            currentConversation = null;
+        }
+
+        // Cargar datos al inicio
+        loadData();
+        
+        // Auto-refresh cada 30 segundos
+        setInterval(loadData, 30000);
+        
+        // Cerrar modal al presionar Escape
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'Escape') closeModal();
+        });
+        
+        // Enviar mensaje con Enter
+        document.getElementById('messageInput').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') sendMessage();
+        });
+    </script>
+</body>
+</html>
+  `;
+  
+  res.send(html);
+});
+
+/**
+ * API: Obtener estadísticas
+ */
+router.get('/stats', (req, res) => {
+  try {
+    const stats = conversationService.getStats();
+    res.json(stats);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+/**
+ * API: Obtener conversaciones activas
+ */
+router.get('/conversations', (req, res) => {
+  try {
+    const conversations = conversationService.getActiveConversations();
+    res.json(conversations);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+/**
+ * API: Obtener una conversación específica con su historial
+ */
+router.get('/conversation/:phoneNumber', (req, res) => {
+  try {
+    const { phoneNumber } = req.params;
+    const conversation = conversationService.getConversation(phoneNumber);
+    const messages = conversationService.getMessageHistory(phoneNumber);
+    
+    res.json({
+      conversation,
+      messages
+    });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+/**
+ * API: Activar modo manual
+ */
+router.post('/manual/:phoneNumber', (req, res) => {
+  try {
+    const { phoneNumber } = req.params;
+    const conversation = conversationService.setManualMode(phoneNumber);
+    
+    console.log(`🔧 Admin activó modo manual para ${phoneNumber}`);
+    
+    res.json({
+      success: true,
+      conversation,
+      message: `Modo manual activado para ${phoneNumber}`
+    });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+/**
+ * API: Activar modo automático
+ */
+router.post('/auto/:phoneNumber', (req, res) => {
+  try {
+    const { phoneNumber } = req.params;
+    const conversation = conversationService.setAutoMode(phoneNumber);
+    
+    console.log(`🤖 Admin activó modo automático para ${phoneNumber}`);
+    
+    res.json({
+      success: true,
+      conversation,
+      message: `Modo automático activado para ${phoneNumber}`
+    });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+/**
+ * API: Enviar mensaje manual
+ */
+router.post('/send/:phoneNumber', async (req, res) => {
+  try {
+    const { phoneNumber } = req.params;
+    const { message } = req.body;
+    
+    if (!message || !message.trim()) {
+      return res.status(400).json({ error: 'Mensaje requerido' });
+    }
+    
+    // Activar modo manual automáticamente
+    conversationService.setManualMode(phoneNumber);
+    
+    // Enviar mensaje
+    const result = await messageService.sendMessage(`whatsapp:+${phoneNumber}`, message.trim());
+    
+    // Registrar en el historial
+    conversationService.addMessage(phoneNumber, message.trim(), 'admin');
+    
+    console.log(`📤 Admin envió mensaje a ${phoneNumber}: "${message.trim()}"`);
+    
+    res.json({
+      success: true,
+      result,
+      message: 'Mensaje enviado correctamente'
+    });
+    
+  } catch (error) {
+    console.error('❌ Error enviando mensaje manual:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+/**
+ * API: Buscar conversaciones
+ */
+router.get('/search', (req, res) => {
+  try {
+    const { q } = req.query;
+    
+    if (!q || q.trim() === '') {
+      return res.json([]);
+    }
+    
+    const results = conversationService.searchConversations(q.trim());
+    res.json(results);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+module.exports = router;
