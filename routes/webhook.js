@@ -27,8 +27,9 @@ router.post('/whatsapp', async (req, res) => {
     console.log('- Body completo:');
     console.log(JSON.stringify(req.body, null, 2));
     
-    // Responder inmediatamente para confirmar recepción
-    res.status(200).send('OK');
+  // Responder inmediatamente para confirmar recepción (ACK) y continuar procesando de forma asíncrona
+  // Importante: NO volver a usar "res" en este handler después de este punto
+  res.status(200).end();
     
     // Procesar el mensaje de forma asíncrona
     const webhookData = req.body;
@@ -78,10 +79,11 @@ router.post('/whatsapp', async (req, res) => {
     
     // Verificar si es un mensaje entrante válido
     if (!webhookData.messages && !webhookData.message && !webhookData.Body && !webhookData.entry) {
-      console.log('⚠️  Webhook recibido pero sin formato de mensaje reconocido');
-      console.log('📋 Estructura completa para análisis:');
-      console.log(JSON.stringify(webhookData, null, 2));
-      return res.status(200).send('OK - Sin mensajes');
+  console.log('⚠️  Webhook recibido pero sin formato de mensaje reconocido');
+  console.log('📋 Estructura completa para análisis:');
+  console.log(JSON.stringify(webhookData, null, 2));
+  // Ya se respondió al inicio, solo terminar
+  return;
     }
     
     // Intentar extraer mensaje según diferentes formatos
@@ -113,6 +115,14 @@ router.post('/whatsapp', async (req, res) => {
     // Formato de Facebook/Meta webhook
     else if (webhookData.entry && webhookData.entry[0]?.changes) {
       const change = webhookData.entry[0].changes[0];
+      
+      // Verificar si es un status update (delivered, read, sent) y no un mensaje
+      if (change.value?.statuses && !change.value?.messages) {
+        console.log('📋 Status update recibido (delivered/read/sent) - Ignorando');
+        // Ya se respondió al inicio, solo terminar
+        return;
+      }
+      
       if (change.value?.messages && change.value.messages[0]) {
         const message = change.value.messages[0];
         messageText = message.text?.body;
@@ -136,7 +146,15 @@ router.post('/whatsapp', async (req, res) => {
     // Solo procesar mensajes de texto
     if (messageType !== 'text' || !messageText || messageText.trim() === '') {
       console.log('⚠️  Mensaje no es de texto o está vacío, ignorando...');
-      return res.status(200).send('OK');
+      // Ya se respondió al inicio
+      return;
+    }
+
+    // Verificar que tengamos los datos mínimos necesarios
+    if (!fromNumber) {
+      console.log('⚠️  No se pudo extraer número de teléfono, ignorando...');
+      // Ya se respondió al inicio
+      return;
     }
 
     // ===== GESTIÓN DE CONVERSACIONES =====
@@ -162,13 +180,13 @@ router.post('/whatsapp', async (req, res) => {
         (new Date() - new Date(msg.timestamp)) < 5 * 60 * 1000 // 5 minutos
       );
       
-      if (!hasRecentAdminMessage) {
+  if (!hasRecentAdminMessage) {
         const waitMessage = "Gracias por tu mensaje. Un agente te atenderá en breve. 👨‍💼";
         await messageService.sendMessage(`whatsapp:+${fromNumber}`, waitMessage);
         conversationService.addMessage(fromNumber, waitMessage, 'ai', contactName);
       }
-      
-      return res.status(200).send('OK - Modo manual');
+  // Ya se respondió al inicio
+  return;
     }
     
     console.log('🤖 Conversación en modo AUTOMÁTICO - Procesando con IA');
@@ -206,8 +224,7 @@ router.post('/whatsapp', async (req, res) => {
     console.log('🆔 Result:', JSON.stringify(result, null, 2));
     console.log('🏁 ===== FIN PROCESAMIENTO EXITOSO =====\n');
 
-    // Responder a 360dialog con 200 OK
-    res.status(200).send('OK');
+  // Ya se respondió con ACK al inicio
 
   } catch (error) {
     console.error('\n❌ ===== ERROR EN WEBHOOK =====');
@@ -226,8 +243,7 @@ router.post('/whatsapp', async (req, res) => {
       console.error('❌ Error enviando mensaje de error:', sendError);
     }
 
-    // Siempre responder 200 para evitar reintentos
-    res.status(200).send('Error procesado');
+  // Ya se respondió con ACK al inicio; no enviar otra respuesta
   }
 });
 
