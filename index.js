@@ -1,6 +1,6 @@
 /**
  * Servidor principal para el chatbot de WhatsApp
- * Integra OpenAI y Express
+ * Integra OpenAI, Express y PostgreSQL
  */
 
 require('dotenv').config();
@@ -11,6 +11,9 @@ const adminRoutes = require('./routes/admin');
 const openaiService = require('./services/openai');
 const messageService = require('./services/messaging');
 const conversationService = require('./services/conversation');
+
+// Importar base de datos
+const db = require('./config/database');
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -108,31 +111,59 @@ app.post('*', (req, res) => {
   res.status(200).send('OK - Post capturado');
 });
 
-// Ruta de health check
-app.get('/health', (req, res) => {
+// Ruta de health check con verificación de base de datos
+app.get('/health', async (req, res) => {
   console.log('🏥 Health check solicitado');
-  res.json({
-    status: 'OK',
-    message: 'Servidor funcionando correctamente',
-    timestamp: new Date().toISOString(),
-    port: PORT,
-    environment: {
-      NODE_ENV: process.env.NODE_ENV || 'development',
-      openai_configured: !!process.env.OPENAI_API_KEY,
-      messaging_configured: !!process.env.D360_API_KEY
+  
+  try {
+    let databaseStatus = 'not_configured';
+    let stats = null;
+    
+    if (db.isDatabaseConfigured) {
+      const connectionTest = await db.testConnection();
+      databaseStatus = connectionTest.connected ? 'connected' : 'disconnected';
     }
-  });
+    
+    // Obtener estadísticas (funciona con o sin DB)
+    stats = await conversationService.getStats();
+    
+    res.json({
+      status: 'OK',
+      message: 'Servidor funcionando correctamente',
+      timestamp: new Date().toISOString(),
+      port: PORT,
+      database: databaseStatus,
+      storage: db.isDatabaseConfigured ? 'postgresql' : 'memory',
+      environment: {
+        NODE_ENV: process.env.NODE_ENV || 'development',
+        openai_configured: !!process.env.OPENAI_API_KEY,
+        messaging_configured: !!process.env.D360_API_KEY,
+        database_configured: db.isDatabaseConfigured
+      },
+      stats
+    });
+  } catch (error) {
+    console.error('❌ Error en health check:', error);
+    res.status(500).json({
+      status: 'ERROR',
+      message: 'Error en health check',
+      error: error.message,
+      database: 'error',
+      storage: 'unknown'
+    });
+  }
 });
 
 // Ruta para información general
 app.get('/', (req, res) => {
   console.log('📋 Información general solicitada');
   res.json({
-    message: 'Chatbot de WhatsApp con OpenAI',
-    version: '2.0.0',
+    message: 'Chatbot de WhatsApp con OpenAI y PostgreSQL',
+    version: '3.0.0',
     endpoints: {
       'webhook_whatsapp': 'POST /webhook/whatsapp',
       'webhook_standard': 'POST /',
+      'dashboard': 'GET /admin/dashboard',
       'health': 'GET /health'
     },
     status: 'active'
@@ -148,25 +179,85 @@ app.use((error, req, res, next) => {
   });
 });
 
-// Iniciar servidor
-app.listen(PORT, () => {
-  console.log('\n🚀 ==========================================');
-  console.log(`🤖 Chatbot de WhatsApp iniciado`);
-  console.log(`🌐 Servidor corriendo en puerto ${PORT}`);
-  console.log(`📡 Webhook WhatsApp: http://localhost:${PORT}/webhook/whatsapp`);
-  console.log(`📡 Webhook Estándar: http://localhost:${PORT}/`);
-  console.log(`�️ Dashboard Admin: http://localhost:${PORT}/admin`);
-  console.log(`�🏥 Health check: http://localhost:${PORT}/health`);
-  console.log('🚀 ==========================================\n');
+// Inicializar base de datos y servidor
+async function startServer() {
+  try {
+    console.log('\n🔗 Verificando configuración de PostgreSQL...');
+    
+    if (db.isDatabaseConfigured) {
+      console.log('📊 PostgreSQL configurado, intentando conexión...');
+      const connectionTest = await db.testConnection();
+      
+      if (connectionTest.connected) {
+        console.log('✅ Base de datos conectada');
+        await db.initializeSchema();
+        console.log('✅ Esquema de base de datos inicializado');
+      } else {
+        console.warn('⚠️ No se pudo conectar a PostgreSQL:', connectionTest.reason);
+        console.warn('🔄 Continuando con almacenamiento en memoria...');
+      }
+    } else {
+      console.log('📝 PostgreSQL no configurado, usando almacenamiento en memoria');
+      console.log('💡 Para habilitar persistencia, configura DATABASE_URL en .env');
+    }
 
-  // Verificar configuración
-  const config = [];
-  if (process.env.OPENAI_API_KEY) config.push('✅ OpenAI');
-  if (process.env.D360_API_KEY) config.push('✅ Messaging API');
-  
-  console.log('📋 Configuración:', config.join(', '));
-  
-  if (!process.env.D360_API_KEY) {
-    console.warn('⚠️ D360_API_KEY no configurada');
+    app.listen(PORT, () => {
+      console.log('\n🚀 ==========================================');
+      console.log(`🤖 Chatbot de WhatsApp iniciado`);
+      console.log(`🌐 Servidor corriendo en puerto ${PORT}`);
+      console.log(`📡 Webhook WhatsApp: http://localhost:${PORT}/webhook/whatsapp`);
+      console.log(`📡 Webhook Estándar: http://localhost:${PORT}/`);
+      console.log(`📊 Dashboard Admin: http://localhost:${PORT}/admin/dashboard`);
+      console.log(`🏥 Health check: http://localhost:${PORT}/health`);
+      console.log('🚀 ==========================================\n');
+
+      // Verificar configuración
+      const config = [];
+      if (process.env.OPENAI_API_KEY) config.push('✅ OpenAI');
+      if (process.env.D360_API_KEY) config.push('✅ Messaging API');
+      if (db.isDatabaseConfigured) config.push('✅ PostgreSQL');
+      
+      console.log('📋 Configuración:', config.length > 0 ? config.join(', ') : 'Básica');
+      
+      if (!process.env.D360_API_KEY) {
+        console.warn('⚠️ D360_API_KEY no configurada');
+      }
+      if (!db.isDatabaseConfigured) {
+        console.warn('⚠️ DATABASE_URL no configurada (usando memoria)');
+      }
+    });
+  } catch (error) {
+    console.error('❌ Error iniciando servidor:', error);
+    console.error('Detalles:', error.message);
+    
+    // Intentar iniciar sin base de datos
+    console.log('🔄 Intentando iniciar solo con memoria...');
+    
+    app.listen(PORT, () => {
+      console.log('\n🚀 ==========================================');
+      console.log(`🤖 Chatbot de WhatsApp iniciado (MODO MEMORIA)`);
+      console.log(`🌐 Servidor corriendo en puerto ${PORT}`);
+      console.log(`📊 Dashboard Admin: http://localhost:${PORT}/admin/dashboard`);
+      console.log('⚠️ IMPORTANTE: Los datos no persistirán al reiniciar');
+      console.log('🚀 ==========================================\n');
+    });
   }
+}
+
+// Manejo de errores no capturados
+process.on('uncaughtException', (error) => {
+  console.error('❌ Error no capturado:', error);
 });
+
+process.on('unhandledRejection', (reason, promise) => {
+  console.error('❌ Promesa rechazada no manejada:', reason);
+});
+
+// Cerrar conexiones al terminar
+process.on('SIGTERM', async () => {
+  console.log('🔄 Cerrando servidor...');
+  await db.end();
+  process.exit(0);
+});
+
+startServer();

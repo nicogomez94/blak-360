@@ -182,30 +182,30 @@ router.get('/', (req, res) => {
         async function loadData() {
             try {
                 // Cargar estadísticas
-                const statsResponse = await fetch('/admin/stats');
+                const statsResponse = await fetch('/admin/api/stats');
                 const stats = await statsResponse.json();
                 
                 document.getElementById('stats').innerHTML = \`
                     <div class="stat-card">
-                        <div class="stat-number">\${stats.totalConversations}</div>
+                        <div class="stat-number">\${stats.totalConversations || 0}</div>
                         <div class="stat-label">Total Conversaciones</div>
                     </div>
                     <div class="stat-card">
-                        <div class="stat-number">\${stats.activeToday}</div>
+                        <div class="stat-number">\${stats.activeToday || 0}</div>
                         <div class="stat-label">Activas Hoy</div>
                     </div>
                     <div class="stat-card">
-                        <div class="stat-number">\${stats.manualMode}</div>
+                        <div class="stat-number">\${stats.manualMode || 0}</div>
                         <div class="stat-label">Modo Manual</div>
                     </div>
                     <div class="stat-card">
-                        <div class="stat-number">\${stats.autoMode}</div>
+                        <div class="stat-number">\${stats.autoMode || 0}</div>
                         <div class="stat-label">Modo Automático</div>
                     </div>
                 \`;
 
                 // Cargar conversaciones
-                const conversationsResponse = await fetch('/admin/conversations');
+                const conversationsResponse = await fetch('/admin/api/conversations');
                 const conversations = await conversationsResponse.json();
                 
                 const conversationsList = document.getElementById('conversations-list');
@@ -242,7 +242,7 @@ router.get('/', (req, res) => {
 
         async function setMode(phoneNumber, mode) {
             try {
-                const response = await fetch(\`/admin/\${mode === 'manual' ? 'manual' : 'auto'}/\${phoneNumber}\`, {
+                const response = await fetch(\`/admin/api/conversations/\${phoneNumber}/\${mode}\`, {
                     method: 'POST'
                 });
                 
@@ -260,7 +260,7 @@ router.get('/', (req, res) => {
         async function viewConversation(phoneNumber) {
             try {
                 currentConversation = phoneNumber;
-                const response = await fetch(\`/admin/conversation/\${phoneNumber}\`);
+                const response = await fetch(\`/admin/api/conversation/\${phoneNumber}\`);
                 const data = await response.json();
                 
                 document.getElementById('modalTitle').textContent = \`\${data.conversation.contactName} (\${phoneNumber})\`;
@@ -290,7 +290,7 @@ router.get('/', (req, res) => {
             if (!message || !currentConversation) return;
             
             try {
-                const response = await fetch(\`/admin/send/\${currentConversation}\`, {
+                const response = await fetch(\`/admin/api/send/\${currentConversation}\`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ message })
@@ -342,11 +342,12 @@ router.get('/', (req, res) => {
 /**
  * API: Obtener estadísticas
  */
-router.get('/stats', (req, res) => {
+router.get('/api/stats', async (req, res) => {
   try {
-    const stats = conversationService.getStats();
+    const stats = await conversationService.getStats();
     res.json(stats);
   } catch (error) {
+    console.error('Error obteniendo estadísticas:', error);
     res.status(500).json({ error: error.message });
   }
 });
@@ -354,11 +355,12 @@ router.get('/stats', (req, res) => {
 /**
  * API: Obtener conversaciones activas
  */
-router.get('/conversations', (req, res) => {
+router.get('/api/conversations', async (req, res) => {
   try {
-    const conversations = conversationService.getActiveConversations();
+    const conversations = await conversationService.getActiveConversations();
     res.json(conversations);
   } catch (error) {
+    console.error('Error obteniendo conversaciones:', error);
     res.status(500).json({ error: error.message });
   }
 });
@@ -366,11 +368,128 @@ router.get('/conversations', (req, res) => {
 /**
  * API: Obtener una conversación específica con su historial
  */
-router.get('/conversation/:phoneNumber', (req, res) => {
+router.get('/api/conversation/:phoneNumber', async (req, res) => {
   try {
     const { phoneNumber } = req.params;
-    const conversation = conversationService.getConversation(phoneNumber);
-    const messages = conversationService.getMessageHistory(phoneNumber);
+    const conversation = await conversationService.getConversation(phoneNumber);
+    const messages = await conversationService.getMessageHistory(phoneNumber);
+    
+    res.json({
+      conversation,
+      messages
+    });
+  } catch (error) {
+    console.error('Error obteniendo conversación:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+/**
+ * API: Activar modo manual
+ */
+router.post('/api/conversations/:phoneNumber/manual', async (req, res) => {
+  try {
+    const { phoneNumber } = req.params;
+    const conversation = await conversationService.setManualMode(phoneNumber);
+    
+    console.log(`🔧 Admin activó modo manual para ${phoneNumber}`);
+    
+    res.json({
+      success: true,
+      conversation,
+      message: `Modo manual activado para ${phoneNumber}`
+    });
+  } catch (error) {
+    console.error('Error activando modo manual:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+/**
+ * API: Activar modo automático
+ */
+router.post('/api/conversations/:phoneNumber/auto', async (req, res) => {
+  try {
+    const { phoneNumber } = req.params;
+    const conversation = await conversationService.setAutoMode(phoneNumber);
+    
+    console.log(`🤖 Admin activó modo automático para ${phoneNumber}`);
+    
+    res.json({
+      success: true,
+      conversation,
+      message: `Modo automático activado para ${phoneNumber}`
+    });
+  } catch (error) {
+    console.error('Error activando modo automático:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+/**
+ * API: Enviar mensaje como admin
+ */
+router.post('/api/send/:phoneNumber', async (req, res) => {
+  try {
+    const { phoneNumber } = req.params;
+    const { message } = req.body;
+    
+    if (!message || message.trim() === '') {
+      return res.status(400).json({ error: 'Mensaje requerido' });
+    }
+    
+    // Agregar mensaje al historial como admin
+    await conversationService.addMessage(phoneNumber, message, 'admin');
+    
+    // Enviar mensaje por WhatsApp
+    const messageService = require('../services/messaging');
+    await messageService.sendMessage(phoneNumber, message);
+    
+    console.log(`👨‍💼 Admin envió mensaje a ${phoneNumber}: "${message}"`);
+    
+    res.json({
+      success: true,
+      message: 'Mensaje enviado correctamente'
+    });
+  } catch (error) {
+    console.error('Error enviando mensaje:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Mantener las rutas originales para compatibilidad
+/**
+ * API: Obtener estadísticas (legacy)
+ */
+router.get('/stats', async (req, res) => {
+  try {
+    const stats = await conversationService.getStats();
+    res.json(stats);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+/**
+ * API: Obtener conversaciones activas (legacy)
+ */
+router.get('/conversations', async (req, res) => {
+  try {
+    const conversations = await conversationService.getActiveConversations();
+    res.json(conversations);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+/**
+ * API: Obtener una conversación específica con su historial (legacy)
+ */
+router.get('/conversation/:phoneNumber', async (req, res) => {
+  try {
+    const { phoneNumber } = req.params;
+    const conversation = await conversationService.getConversation(phoneNumber);
+    const messages = await conversationService.getMessageHistory(phoneNumber);
     
     res.json({
       conversation,
@@ -382,12 +501,12 @@ router.get('/conversation/:phoneNumber', (req, res) => {
 });
 
 /**
- * API: Activar modo manual
+ * API: Activar modo manual (legacy)
  */
-router.post('/manual/:phoneNumber', (req, res) => {
+router.post('/manual/:phoneNumber', async (req, res) => {
   try {
     const { phoneNumber } = req.params;
-    const conversation = conversationService.setManualMode(phoneNumber);
+    const conversation = await conversationService.setManualMode(phoneNumber);
     
     console.log(`🔧 Admin activó modo manual para ${phoneNumber}`);
     
@@ -402,12 +521,12 @@ router.post('/manual/:phoneNumber', (req, res) => {
 });
 
 /**
- * API: Activar modo automático
+ * API: Activar modo automático (legacy)
  */
-router.post('/auto/:phoneNumber', (req, res) => {
+router.post('/auto/:phoneNumber', async (req, res) => {
   try {
     const { phoneNumber } = req.params;
-    const conversation = conversationService.setAutoMode(phoneNumber);
+    const conversation = await conversationService.setAutoMode(phoneNumber);
     
     console.log(`🤖 Admin activó modo automático para ${phoneNumber}`);
     
@@ -422,7 +541,7 @@ router.post('/auto/:phoneNumber', (req, res) => {
 });
 
 /**
- * API: Enviar mensaje manual
+ * API: Enviar mensaje manual (legacy)
  */
 router.post('/send/:phoneNumber', async (req, res) => {
   try {
@@ -434,19 +553,19 @@ router.post('/send/:phoneNumber', async (req, res) => {
     }
     
     // Activar modo manual automáticamente
-    conversationService.setManualMode(phoneNumber);
+    await conversationService.setManualMode(phoneNumber);
     
-    // Enviar mensaje
-    const result = await messageService.sendMessage(`whatsapp:+${phoneNumber}`, message.trim());
+    // Agregar mensaje al historial como admin
+    await conversationService.addMessage(phoneNumber, message.trim(), 'admin');
     
-    // Registrar en el historial
-    conversationService.addMessage(phoneNumber, message.trim(), 'admin');
+    // Enviar mensaje por WhatsApp
+    const messageService = require('../services/messaging');
+    await messageService.sendMessage(phoneNumber, message.trim());
     
     console.log(`📤 Admin envió mensaje a ${phoneNumber}: "${message.trim()}"`);
     
     res.json({
       success: true,
-      result,
       message: 'Mensaje enviado correctamente'
     });
     
@@ -459,7 +578,7 @@ router.post('/send/:phoneNumber', async (req, res) => {
 /**
  * API: Buscar conversaciones
  */
-router.get('/search', (req, res) => {
+router.get('/api/search', async (req, res) => {
   try {
     const { q } = req.query;
     
@@ -467,7 +586,26 @@ router.get('/search', (req, res) => {
       return res.json([]);
     }
     
-    const results = conversationService.searchConversations(q.trim());
+    const results = await conversationService.searchConversations(q.trim());
+    res.json(results);
+  } catch (error) {
+    console.error('Error en búsqueda:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+/**
+ * API: Buscar conversaciones (legacy)
+ */
+router.get('/search', async (req, res) => {
+  try {
+    const { q } = req.query;
+    
+    if (!q || q.trim() === '') {
+      return res.json([]);
+    }
+    
+    const results = await conversationService.searchConversations(q.trim());
     res.json(results);
   } catch (error) {
     res.status(500).json({ error: error.message });

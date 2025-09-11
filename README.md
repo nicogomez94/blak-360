@@ -66,7 +66,7 @@ DEBUG=true
 npm install -g ngrok
 
 # Ejecutar ngrok en otra terminal
-ngrok http 3000
+npx ngrok http 3000
 
 # Usar la URL HTTPS que ngrok proporciona
 # Ejemplo: https://abc123.ngrok.io/webhook/whatsapp
@@ -111,15 +111,19 @@ curl http://localhost:3000/webhook/status
 - `GET /webhook/status` - Estado del webhook
 - `POST /webhook/test` - Enviar mensaje de prueba
 
-Ejemplo de uso del endpoint de prueba:
-```bash
-curl -X POST http://localhost:3000/webhook/test \
+SETEAR WEBHOOK CALLBACJ URL
+
+curl -X POST "https://waba-v2.360dialog.io/v1/configs/webhook" \
+  -H "D360-API-KEY: XXXXXXXXXXXXXXXXXXXXX" \
   -H "Content-Type: application/json" \
   -d '{
-    "message": "Hola, ¿cómo estás?",
-    "phone": "whatsapp:+1234567890"
+    "url": "https://XXXXXXXXXXX.ngrok-free.app/webhook/whatsapp"
   }'
-```
+
+CHECK
+
+curl -X GET "https://waba-v2.360dialog.io/v1/configs/webhook" \
+  -H "D360-API-KEY: XXXXXXXXXXXXXXXXXX"
 
 ## 📁 Estructura del Proyecto
 

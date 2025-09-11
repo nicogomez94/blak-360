@@ -161,10 +161,10 @@ router.post('/whatsapp', async (req, res) => {
     console.log('\n🎯 ===== GESTIÓN DE CONVERSACIÓN =====');
     
     // Registrar mensaje del usuario
-    conversationService.addMessage(fromNumber, messageText.trim(), 'user', contactName);
+    await conversationService.addMessage(fromNumber, messageText.trim(), 'user', contactName);
     
     // Verificar si la conversación está en modo manual
-    const isManual = conversationService.isManualMode(fromNumber);
+    const isManual = await conversationService.isManualMode(fromNumber);
     
     if (isManual) {
       console.log('🔧 Conversación en modo MANUAL - No procesando con IA');
@@ -173,9 +173,9 @@ router.post('/whatsapp', async (req, res) => {
       console.log('⏳ Esperando intervención manual del administrador...');
       
       // Solo responder con confirmación si no hay actividad reciente del admin
-      const conversation = conversationService.getConversation(fromNumber);
-      const recentMessages = conversationService.getMessageHistory(fromNumber, 3);
-      const hasRecentAdminMessage = recentMessages.some(msg => 
+      const conversation = await conversationService.getConversation(fromNumber);
+      const recentMessages = await conversationService.getMessageHistory(fromNumber, 3);
+      const hasRecentAdminMessage = recentMessages && recentMessages.some(msg => 
         msg.sender === 'admin' && 
         (new Date() - new Date(msg.timestamp)) < 5 * 60 * 1000 // 5 minutos
       );
@@ -183,7 +183,7 @@ router.post('/whatsapp', async (req, res) => {
   if (!hasRecentAdminMessage) {
         const waitMessage = "Gracias por tu mensaje. Un agente te atenderá en breve. 👨‍💼";
         await messageService.sendMessage(`whatsapp:+${fromNumber}`, waitMessage);
-        conversationService.addMessage(fromNumber, waitMessage, 'ai', contactName);
+        await conversationService.addMessage(fromNumber, waitMessage, 'ai', contactName);
       }
   // Ya se respondió al inicio
   return;
@@ -216,7 +216,7 @@ router.post('/whatsapp', async (req, res) => {
     const result = await messageService.sendMessage(`whatsapp:+${fromNumber}`, aiResponse);
     
     // Registrar respuesta de la IA
-    conversationService.addMessage(fromNumber, aiResponse, 'ai', contactName);
+    await conversationService.addMessage(fromNumber, aiResponse, 'ai', contactName);
     
     // ===== LOG: Resultado del envío =====
     console.log('\n✅ ===== RESULTADO DEL ENVÍO =====');
