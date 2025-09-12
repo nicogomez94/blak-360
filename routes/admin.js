@@ -18,6 +18,7 @@ router.get('/', (req, res) => {
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Dashboard - WhatsApp Bot</title>
+    <script src="/socket.io/socket.io.js"></script>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body { 
@@ -139,6 +140,18 @@ router.get('/', (req, res) => {
             border: 1px solid #ddd;
             border-radius: 4px;
         }
+        
+        /* Animación para notificaciones */
+        @keyframes slideIn {
+            from {
+                transform: translateX(100%);
+                opacity: 0;
+            }
+            to {
+                transform: translateX(0);
+                opacity: 1;
+            }
+        }
     </style>
 </head>
 <body>
@@ -178,6 +191,62 @@ router.get('/', (req, res) => {
 
     <script>
         let currentConversation = null;
+        let socket = null;
+
+        // Conectar WebSocket para tiempo real
+        function connectWebSocket() {
+            socket = io();
+            
+            socket.on('connect', () => {
+                console.log('🔗 Conectado al WebSocket');
+            });
+            
+            socket.on('message-update', (data) => {
+                console.log('🔄 Nuevo mensaje recibido:', data);
+                handleNewMessage(data);
+            });
+            
+            socket.on('disconnect', () => {
+                console.log('🔌 Desconectado del WebSocket');
+            });
+        }
+
+        // Manejar nuevo mensaje en tiempo real
+        function handleNewMessage(data) {
+            // Recargar conversaciones para actualizar contadores
+            loadData();
+            
+            // Si estamos viendo esta conversación, actualizar mensajes
+            if (currentConversation === data.phoneNumber) {
+                viewConversation(data.phoneNumber);
+            }
+            
+            // Mostrar notificación visual
+            showNotification(\`Nuevo mensaje de \${data.contactName}\`);
+        }
+
+        // Mostrar notificación
+        function showNotification(message) {
+            const notification = document.createElement('div');
+            notification.style.cssText = \`
+                position: fixed;
+                top: 20px;
+                right: 20px;
+                background: #25D366;
+                color: white;
+                padding: 1rem;
+                border-radius: 8px;
+                box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+                z-index: 1000;
+                animation: slideIn 0.3s ease;
+            \`;
+            notification.textContent = message;
+            document.body.appendChild(notification);
+            
+            setTimeout(() => {
+                notification.remove();
+            }, 3000);
+        }
 
         async function loadData() {
             try {
@@ -316,11 +385,12 @@ router.get('/', (req, res) => {
             currentConversation = null;
         }
 
-        // Cargar datos al inicio
+        // Conectar WebSocket y cargar datos al inicio
+        connectWebSocket();
         loadData();
         
-        // Auto-refresh cada 30 segundos
-        setInterval(loadData, 30000);
+        // Auto-refresh cada 60 segundos (menos frecuente porque WebSocket maneja tiempo real)
+        setInterval(loadData, 60000);
         
         // Cerrar modal al presionar Escape
         document.addEventListener('keydown', function(e) {

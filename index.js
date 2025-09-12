@@ -6,6 +6,8 @@
 require('dotenv').config();
 const express = require('express');
 const bodyParser = require('body-parser');
+const http = require('http');
+const { Server } = require('socket.io');
 const webhookRoutes = require('./routes/webhook');
 const adminRoutes = require('./routes/admin');
 const openaiService = require('./services/openai');
@@ -16,7 +18,27 @@ const conversationService = require('./services/conversation');
 const db = require('./config/database');
 
 const app = express();
+const server = http.createServer(app);
+const io = new Server(server);
 const PORT = process.env.PORT || 3001;
+
+// Configurar WebSocket para tiempo real
+io.on('connection', (socket) => {
+  console.log('🔗 Cliente conectado al WebSocket:', socket.id);
+  
+  socket.on('disconnect', () => {
+    console.log('🔌 Cliente desconectado:', socket.id);
+  });
+  
+  // Enviar estado inicial de conversaciones
+  socket.emit('conversations-update', {
+    action: 'connected',
+    timestamp: new Date().toISOString()
+  });
+});
+
+// Exportar io para usar en otros módulos
+global.io = io;
 
 // Middleware para parsear el body de las peticiones
 app.use(bodyParser.urlencoded({ extended: false }));
@@ -201,7 +223,7 @@ async function startServer() {
       console.log('💡 Para habilitar persistencia, configura DATABASE_URL en .env');
     }
 
-    app.listen(PORT, () => {
+    server.listen(PORT, () => {
       console.log('\n🚀 ==========================================');
       console.log(`🤖 Chatbot de WhatsApp iniciado`);
       console.log(`🌐 Servidor corriendo en puerto ${PORT}`);
@@ -209,6 +231,7 @@ async function startServer() {
       console.log(`📡 Webhook Estándar: http://localhost:${PORT}/`);
       console.log(`📊 Dashboard Admin: http://localhost:${PORT}/admin/dashboard`);
       console.log(`🏥 Health check: http://localhost:${PORT}/health`);
+      console.log(`🔄 WebSocket: Activado para tiempo real`);
       console.log('🚀 ==========================================\n');
 
       // Verificar configuración
@@ -233,11 +256,12 @@ async function startServer() {
     // Intentar iniciar sin base de datos
     console.log('🔄 Intentando iniciar solo con memoria...');
     
-    app.listen(PORT, () => {
+    server.listen(PORT, () => {
       console.log('\n🚀 ==========================================');
       console.log(`🤖 Chatbot de WhatsApp iniciado (MODO MEMORIA)`);
       console.log(`🌐 Servidor corriendo en puerto ${PORT}`);
       console.log(`📊 Dashboard Admin: http://localhost:${PORT}/admin/dashboard`);
+      console.log(`🔄 WebSocket: Activado para tiempo real`);
       console.log('⚠️ IMPORTANTE: Los datos no persistirán al reiniciar');
       console.log('🚀 ==========================================\n');
     });

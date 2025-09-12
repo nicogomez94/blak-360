@@ -274,6 +274,10 @@ class ConversationService {
       });
       
       console.log(`💬 Mensaje agregado (memoria): ${sender} -> ${cleanPhone}: "${message}"`);
+      
+      // Emitir evento de WebSocket para tiempo real
+      this.emitNewMessage(cleanPhone, messageData, contactName);
+      
       return messageData;
     }
     
@@ -292,6 +296,10 @@ class ConversationService {
       });
 
       console.log(`💬 Mensaje agregado (DB): ${sender} -> ${cleanPhone}: "${message}"`);
+      
+      // Emitir evento de WebSocket para tiempo real
+      this.emitNewMessage(cleanPhone, messageData, contactName);
+      
       return messageData;
     } catch (error) {
       console.error('❌ Error agregando mensaje (usando fallback):', error);
@@ -301,6 +309,10 @@ class ConversationService {
       }
       this.messageHistory.get(cleanPhone).push(messageData);
       console.log(`💬 Mensaje agregado (memoria fallback): ${sender} -> ${cleanPhone}: "${message}"`);
+      
+      // Emitir evento de WebSocket para tiempo real
+      this.emitNewMessage(cleanPhone, messageData, contactName);
+      
       return messageData;
     }
   }
@@ -543,6 +555,29 @@ class ConversationService {
       messageCount: row.message_count,
       lastActivity: row.last_activity
     };
+  }
+
+  /**
+   * Emitir evento de nuevo mensaje por WebSocket
+   */
+  emitNewMessage(phoneNumber, messageData, contactName) {
+    // Solo emitir si global.io existe (WebSocket habilitado)
+    if (typeof global !== 'undefined' && global.io) {
+      const eventData = {
+        phoneNumber: phoneNumber,
+        contactName: contactName,
+        message: {
+          text: messageData.text,
+          sender: messageData.sender,
+          timestamp: messageData.timestamp,
+          id: messageData.id
+        },
+        action: 'new_message'
+      };
+
+      console.log(`🔄 Emitiendo mensaje por WebSocket: ${messageData.sender} -> ${phoneNumber}`);
+      global.io.emit('message-update', eventData);
+    }
   }
 }
 
