@@ -212,32 +212,11 @@ router.get('/', (req, res) => {
             border-bottom-right-radius: 5px;
         }
         
-        .message-user .message-bubble::after {
-            content: '';
-            position: absolute;
-            bottom: 0;
-            right: -8px;
-            width: 0;
-            height: 0;
-            border-left: 8px solid #dcf8c6;
-            border-bottom: 8px solid transparent;
-        }
         
         /* Burbujas de IA/Admin (izquierda) */
         .message-ai .message-bubble, .message-admin .message-bubble {
             background: white;
             border-bottom-left-radius: 5px;
-        }
-        
-        .message-ai .message-bubble::after, .message-admin .message-bubble::after {
-            content: '';
-            position: absolute;
-            bottom: 0;
-            left: -8px;
-            width: 0;
-            height: 0;
-            border-right: 8px solid white;
-            border-bottom: 8px solid transparent;
         }
         
         .message-sender {
@@ -398,6 +377,28 @@ router.get('/', (req, res) => {
                 transform: scale(1.2);
                 opacity: 1;
             }
+        }
+
+        /* Mensajes informativos del modo */
+        .mode-info {
+            animation: fadeIn 0.5s ease;
+        }
+        
+        .manual-info div {
+            background: linear-gradient(135deg, #e8f5e8, #f1f8f1) !important;
+            border: 1px solid #c8e6c9;
+            box-shadow: 0 2px 8px rgba(76, 175, 80, 0.1);
+        }
+        
+        .auto-info div {
+            background: linear-gradient(135deg, #e3f2fd, #f0f7ff) !important;
+            border: 1px solid #bbdefb;
+            box-shadow: 0 2px 8px rgba(33, 150, 243, 0.1);
+        }
+        
+        .mode-info small {
+            opacity: 0.8;
+            font-size: 0.85rem;
         }
     </style>
 </head>
@@ -587,25 +588,51 @@ router.get('/', (req, res) => {
                     return;
                 }
                 
-                conversationsList.innerHTML = conversations.map(conv => \`
-                    <div class="conversation \${conv.isManualMode ? 'manual-mode' : 'auto-mode'}" data-phone="\${conv.phoneNumber}">
-                        <div class="conversation-info">
-                            <h3 class="conversation-name">\${conv.contactName} (\${conv.phoneNumber})</h3>
-                            <div class="conversation-meta">
-                                \${conv.isManualMode ? '🔧 Modo Manual' : '🤖 Modo Automático'} | 
-                                \${conv.messageCount} mensajes | 
-                                \${new Date(conv.lastActivity).toLocaleString()}
+                conversationsList.innerHTML = conversations.map(conv => {
+                    // Formatear número tipo +54 9 11 XXX XXXX
+                    function formatPhoneNumber(phone) {
+                        // Elimina cualquier caracter no numérico
+                        phone = phone.replace(/\D/g, '');
+                        // Asume formato argentino: 54911XXXXXXXX
+                        if (phone.length === 13 && phone.startsWith('549')) {
+                            return \`+54 9 11 \${phone.slice(5,9)} \${phone.slice(9,13)}\`;
+                        }
+                        // Si es 11 dígitos (ej: 115XXXXXXXX)
+                        if (phone.length === 11 && phone.startsWith('11')) {
+                            return \`+54 9 11 \${phone.slice(2,6)} \${phone.slice(6,10)}\`;
+                        }
+                        // Si es 10 dígitos (ej: 911XXXXXXXX)
+                        if (phone.length === 10 && phone.startsWith('9')) {
+                            return \`+54 9 11 \${phone.slice(3,7)} \${phone.slice(7,11)}\`;
+                        }
+                        // Si es 8 dígitos (ej: XXXXXXXX)
+                        if (phone.length === 8) {
+                            return \`+54 9 11 \${phone.slice(0,4)} \${phone.slice(4,8)}\`;
+                        }
+                        // Si no matchea, devuelve el original
+                        return phone;
+                    }
+                    const formattedPhone = formatPhoneNumber(conv.phoneNumber);
+                    return \`
+                        <div class="conversation \${conv.isManualMode ? 'manual-mode' : 'auto-mode'}" data-phone="\${conv.phoneNumber}">
+                            <div class="conversation-info">
+                                <h3 class="conversation-name">\${conv.contactName} (\${formattedPhone})</h3>
+                                <div class="conversation-meta">
+                                    \${conv.isManualMode ? '🔧 Modo Manual' : '🤖 Modo Automático'} | 
+                                    \${conv.messageCount} mensajes | 
+                                    \${new Date(conv.lastActivity).toLocaleString()}
+                                </div>
+                            </div>
+                            <div class="conversation-actions">
+                                <button class="btn btn-view" onclick="viewConversation('\${conv.phoneNumber}')">Ver</button>
+                                \${conv.isManualMode ? 
+                                    \`<button class="btn btn-auto" onclick="setMode('\${conv.phoneNumber}', 'auto')">Auto</button>\` :
+                                    \`<button class="btn btn-manual" onclick="setMode('\${conv.phoneNumber}', 'manual')">Manual</button>\`
+                                }
                             </div>
                         </div>
-                        <div class="conversation-actions">
-                            <button class="btn btn-view" onclick="viewConversation('\${conv.phoneNumber}')">Ver</button>
-                            \${conv.isManualMode ? 
-                                \`<button class="btn btn-auto" onclick="setMode('\${conv.phoneNumber}', 'auto')">Auto</button>\` :
-                                \`<button class="btn btn-manual" onclick="setMode('\${conv.phoneNumber}', 'manual')">Manual</button>\`
-                            }
-                        </div>
-                    </div>
-                \`).join('');
+                    \`;
+                }).join('');
                 
             } catch (error) {
                 console.error('Error cargando datos:', error);
@@ -702,12 +729,48 @@ router.get('/', (req, res) => {
                     \`;
                 }).join('');
                 
+                // Controlar visibilidad del área de envío según el modo
+                const sendMessageArea = document.querySelector('.send-message');
+                const messageInput = document.getElementById('messageInput');
+                
+                if (data.conversation.isManualMode) {
+                    // Modo Manual: Mostrar área de envío
+                    sendMessageArea.style.display = 'flex';
+                    // Agregar mensaje informativo si no hay mensajes del admin
+                    if (!data.messages.some(msg => msg.sender === 'admin')) {
+                        const infoMessage = document.createElement('div');
+                        infoMessage.className = 'mode-info manual-info';
+                        infoMessage.innerHTML = \`
+                            <div style="text-align: center; padding: 1rem; background: #e8f5e8; border-radius: 8px; margin: 1rem 0; color: #2d5016;">
+                                🔧 <strong>Modo Manual Activado</strong><br>
+                                <small>Puedes responder directamente desde aquí. La IA está pausada.</small>
+                            </div>
+                        \`;
+                        messagesDiv.appendChild(infoMessage);
+                    }
+                } else {
+                    // Modo Automático: Ocultar área de envío
+                    sendMessageArea.style.display = 'none';
+                    // Agregar mensaje informativo
+                    const infoMessage = document.createElement('div');
+                    infoMessage.className = 'mode-info auto-info';
+                    infoMessage.innerHTML = \`
+                        <div style="text-align: center; padding: 1rem; background: #e3f2fd; border-radius: 8px; margin: 1rem 0; color: #1565c0;">
+                            🤖 <strong>Modo Automático Activado</strong><br>
+                            <small>La IA responde automáticamente. Para intervenir manualmente, activa el Modo Manual.</small>
+                        </div>
+                    \`;
+                    messagesDiv.appendChild(infoMessage);
+                }
+                
                 // Mostrar modal y hacer scroll automático
                 document.getElementById('conversationModal').style.display = 'block';
                 setTimeout(() => scrollToBottom(), 100);
                 
-                // Focus en el input
-                document.getElementById('messageInput').focus();
+                // Focus en el input solo si está en modo manual
+                if (data.conversation.isManualMode) {
+                    messageInput.focus();
+                }
                 
             } catch (error) {
                 console.error('Error:', error);
