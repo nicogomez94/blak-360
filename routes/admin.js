@@ -45,6 +45,22 @@ router.get('/', (req, res) => {
             border-radius: 8px;
             box-shadow: 0 2px 4px rgba(0,0,0,0.1);
             text-align: center;
+            transition: all 0.3s ease;
+        }
+        .filter-card {
+            cursor: pointer;
+        }
+        .filter-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.15);
+        }
+        .filter-card.active-filter {
+            background: linear-gradient(135deg, #25D366, #128C7E);
+            color: white;
+        }
+        .filter-card.active-filter .stat-number,
+        .filter-card.active-filter .stat-label {
+            color: white;
         }
         .stat-number { font-size: 2rem; font-weight: bold; color: #25D366; }
         .stat-label { color: #666; margin-top: 0.5rem; }
@@ -464,6 +480,8 @@ router.get('/', (req, res) => {
     <script>
         let currentConversation = null;
         let socket = null;
+        let allConversations = []; // Array para almacenar todas las conversaciones
+        let currentFilter = 'all'; // Filtro actual
 
         // Conectar WebSocket para tiempo real
         function connectWebSocket() {
@@ -559,19 +577,19 @@ router.get('/', (req, res) => {
                 const stats = await statsResponse.json();
                 
                 document.getElementById('stats').innerHTML = \`
-                    <div class="stat-card">
+                    <div class="stat-card filter-card" onclick="applyFilter('all')" data-filter="all">
                         <div class="stat-number">\${stats.totalConversations || 0}</div>
                         <div class="stat-label">Total Conversaciones</div>
                     </div>
-                    <div class="stat-card">
+                    <div class="stat-card filter-card" onclick="applyFilter('activeToday')" data-filter="activeToday">
                         <div class="stat-number">\${stats.activeToday || 0}</div>
                         <div class="stat-label">Activas Hoy</div>
                     </div>
-                    <div class="stat-card">
+                    <div class="stat-card filter-card" onclick="applyFilter('manual')" data-filter="manual">
                         <div class="stat-number">\${stats.manualMode || 0}</div>
                         <div class="stat-label">Modo Manual</div>
                     </div>
-                    <div class="stat-card">
+                    <div class="stat-card filter-card" onclick="applyFilter('auto')" data-filter="auto">
                         <div class="stat-number">\${stats.autoMode || 0}</div>
                         <div class="stat-label">Modo Automático</div>
                     </div>
@@ -579,64 +597,139 @@ router.get('/', (req, res) => {
 
                 // Cargar conversaciones
                 const conversationsResponse = await fetch('/admin/api/conversations');
-                const conversations = await conversationsResponse.json();
+                allConversations = await conversationsResponse.json();
                 
-                const conversationsList = document.getElementById('conversations-list');
+                // Aplicar filtro actual
+                renderConversations(applyCurrentFilter(allConversations));
                 
-                if (conversations.length === 0) {
-                    conversationsList.innerHTML = '<div style="padding: 2rem; text-align: center; color: #666;">No hay conversaciones activas</div>';
-                    return;
-                }
-                
-                conversationsList.innerHTML = conversations.map(conv => {
-                    // Formatear número tipo +54 9 11 XXX XXXX
-                    function formatPhoneNumber(phone) {
-                        // Elimina cualquier caracter no numérico
-                        phone = phone.replace(/\D/g, '');
-                        // Asume formato argentino: 54911XXXXXXXX
-                        if (phone.length === 13 && phone.startsWith('549')) {
-                            return \`+54 9 11 \${phone.slice(5,9)} \${phone.slice(9,13)}\`;
-                        }
-                        // Si es 11 dígitos (ej: 115XXXXXXXX)
-                        if (phone.length === 11 && phone.startsWith('11')) {
-                            return \`+54 9 11 \${phone.slice(2,6)} \${phone.slice(6,10)}\`;
-                        }
-                        // Si es 10 dígitos (ej: 911XXXXXXXX)
-                        if (phone.length === 10 && phone.startsWith('9')) {
-                            return \`+54 9 11 \${phone.slice(3,7)} \${phone.slice(7,11)}\`;
-                        }
-                        // Si es 8 dígitos (ej: XXXXXXXX)
-                        if (phone.length === 8) {
-                            return \`+54 9 11 \${phone.slice(0,4)} \${phone.slice(4,8)}\`;
-                        }
-                        // Si no matchea, devuelve el original
-                        return phone;
+                // Establecer filtro activo visual
+                setTimeout(() => {
+                    document.querySelectorAll('.filter-card').forEach(card => {
+                        card.classList.remove('active-filter');
+                    });
+                    const activeCard = document.querySelector(\`[data-filter="\${currentFilter}"]\`);
+                    if (activeCard) {
+                        activeCard.classList.add('active-filter');
                     }
-                    const formattedPhone = formatPhoneNumber(conv.phoneNumber);
-                    return \`
-                        <div class="conversation \${conv.isManualMode ? 'manual-mode' : 'auto-mode'}" data-phone="\${conv.phoneNumber}">
-                            <div class="conversation-info">
-                                <h3 class="conversation-name">\${conv.contactName} (\${formattedPhone})</h3>
-                                <div class="conversation-meta">
-                                    \${conv.isManualMode ? '🔧 Modo Manual' : '🤖 Modo Automático'} | 
-                                    \${conv.messageCount} mensajes | 
-                                    \${new Date(conv.lastActivity).toLocaleString()}
-                                </div>
-                            </div>
-                            <div class="conversation-actions">
-                                <button class="btn btn-view" onclick="viewConversation('\${conv.phoneNumber}')">Ver</button>
-                                \${conv.isManualMode ? 
-                                    \`<button class="btn btn-auto" onclick="setMode('\${conv.phoneNumber}', 'auto')">Auto</button>\` :
-                                    \`<button class="btn btn-manual" onclick="setMode('\${conv.phoneNumber}', 'manual')">Manual</button>\`
-                                }
-                            </div>
-                        </div>
-                    \`;
-                }).join('');
+                }, 100);
                 
             } catch (error) {
                 console.error('Error cargando datos:', error);
             }
+        }
+
+        // Función para aplicar el filtro actual
+        function applyCurrentFilter(conversations) {
+            const today = new Date();
+            today.setHours(0, 0, 0, 0);
+            
+            switch(currentFilter) {
+                case 'all':
+                    return conversations;
+                case 'activeToday':
+                    return conversations.filter(conv => {
+                        const lastActivity = new Date(conv.lastActivity);
+                        lastActivity.setHours(0, 0, 0, 0);
+                        return lastActivity >= today;
+                    });
+                case 'manual':
+                    return conversations.filter(conv => conv.isManualMode);
+                case 'auto':
+                    return conversations.filter(conv => !conv.isManualMode);
+                default:
+                    return conversations;
+            }
+        }
+
+        // Función para renderizar las conversaciones
+        function renderConversations(conversations) {
+            const conversationsList = document.getElementById('conversations-list');
+            
+            if (conversations.length === 0) {
+                const filterText = currentFilter === 'all' ? '' : ' para el filtro "' + getFilterLabel(currentFilter) + '"';
+                conversationsList.innerHTML = '<div style="padding: 2rem; text-align: center; color: #666;">No hay conversaciones' + filterText + '</div>';
+                return;
+            }
+            
+            conversationsList.innerHTML = conversations.map(conv => {
+                // Formatear número tipo +54 9 11 XXX XXXX
+                function formatPhoneNumber(phone) {
+                    // Elimina cualquier caracter no numérico
+                    phone = phone.replace(/\D/g, '');
+                    // Asume formato argentino: 54911XXXXXXXX
+                    if (phone.length === 13 && phone.startsWith('549')) {
+                        return \`+54 9 11 \${phone.slice(5,9)} \${phone.slice(9,13)}\`;
+                    }
+                    // Si es 11 dígitos (ej: 115XXXXXXXX)
+                    if (phone.length === 11 && phone.startsWith('11')) {
+                        return \`+54 9 11 \${phone.slice(2,6)} \${phone.slice(6,10)}\`;
+                    }
+                    // Si es 10 dígitos (ej: 911XXXXXXXX)
+                    if (phone.length === 10 && phone.startsWith('9')) {
+                        return \`+54 9 11 \${phone.slice(3,7)} \${phone.slice(7,11)}\`;
+                    }
+                    // Si es 8 dígitos (ej: XXXXXXXX)
+                    if (phone.length === 8) {
+                        return \`+54 9 11 \${phone.slice(0,4)} \${phone.slice(4,8)}\`;
+                    }
+                    // Si no matchea, devuelve el original
+                    return phone;
+                }
+                const formattedPhone = formatPhoneNumber(conv.phoneNumber);
+                return \`
+                    <div class="conversation \${conv.isManualMode ? 'manual-mode' : 'auto-mode'}" data-phone="\${conv.phoneNumber}">
+                        <div class="conversation-info">
+                            <h3 class="conversation-name">\${conv.contactName} (\${formattedPhone})</h3>
+                            <div class="conversation-meta">
+                                \${conv.isManualMode ? '🔧 Modo Manual' : '🤖 Modo Automático'} | 
+                                \${conv.messageCount} mensajes | 
+                                \${new Date(conv.lastActivity).toLocaleString()}
+                            </div>
+                        </div>
+                        <div class="conversation-actions">
+                            <button class="btn btn-view" onclick="viewConversation('\${conv.phoneNumber}')">Ver</button>
+                            \${conv.isManualMode ? 
+                                \`<button class="btn btn-auto" onclick="setMode('\${conv.phoneNumber}', 'auto')">Auto</button>\` :
+                                \`<button class="btn btn-manual" onclick="setMode('\${conv.phoneNumber}', 'manual')">Manual</button>\`
+                            }
+                        </div>
+                    </div>
+                \`;
+            }).join('');
+        }
+
+        // Función para aplicar filtro
+        function applyFilter(filterType) {
+            currentFilter = filterType;
+            
+            // Actualizar estilos de las tarjetas
+            document.querySelectorAll('.filter-card').forEach(card => {
+                card.classList.remove('active-filter');
+            });
+            document.querySelector(\`[data-filter="\${filterType}"]\`).classList.add('active-filter');
+            
+            // Aplicar filtro y renderizar
+            const filteredConversations = applyCurrentFilter(allConversations);
+            renderConversations(filteredConversations);
+            
+            // Mostrar notificación
+            const filterLabels = {
+                'all': 'Todas las conversaciones',
+                'activeToday': 'Conversaciones activas hoy',
+                'manual': 'Conversaciones en modo manual',
+                'auto': 'Conversaciones en modo automático'
+            };
+            showNotification(\`🔍 Filtro aplicado: \${filterLabels[filterType]}\`);
+        }
+
+        // Función helper para obtener etiqueta del filtro
+        function getFilterLabel(filterType) {
+            const labels = {
+                'activeToday': 'Activas Hoy',
+                'manual': 'Modo Manual',
+                'auto': 'Modo Automático'
+            };
+            return labels[filterType] || 'Todas';
         }
 
         async function setMode(phoneNumber, mode) {
