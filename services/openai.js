@@ -440,6 +440,45 @@ async function getResponse(message, userId = 'anonymous') {
 
     // Obtener historial de conversación del usuario desde PostgreSQL
     const phoneNumber = userId.replace('whatsapp:+', '');
+    
+    // 🔍 DETECCIÓN AUTOMÁTICA DE PRODUCTOS PREMIUM
+    const productKeywords = [
+      'ppf', 'instalacion', 'instalación', 'instalar', 'premium',
+      'transparente', 'proteccion', 'protección', 'paint protection',
+      'film protector', 'vinilo premium', '3m serie', 'mate pro shield',
+      'black solar check', 'antivandálico', 'polarizado 3m',
+      'trabajo especial', 'personalizado', 'complejo', 'difícil'
+    ];
+    
+    const messageText = message.toLowerCase();
+    const hasProductKeyword = productKeywords.some(keyword => 
+      messageText.includes(keyword.toLowerCase())
+    );
+    
+    if (hasProductKeyword) {
+      console.log('🔧 Detectado producto premium/complejo - Activando modo manual automáticamente');
+      
+      // Verificar si ya está en modo manual
+      const isAlreadyManual = await conversationService.isManualMode(phoneNumber);
+      
+      if (!isAlreadyManual) {
+        try {
+          await conversationService.setManualMode(phoneNumber, 'auto-detected');
+          console.log(`✅ Conversación ${phoneNumber} cambiada a modo manual automáticamente`);
+          
+          // Retornar mensaje indicando el cambio y que un agente se contactará
+          return 'Aguardame un minuto y te confirmo la disponibilidad de turnos';
+        } catch (error) {
+          console.error('❌ Error activando modo manual automático:', error);
+          // Si falla, continúa con la respuesta normal de IA
+        }
+      } else {
+        console.log('ℹ️ Conversación ya está en modo manual');
+        // Si ya está en manual, no procesamos con IA, devolvemos mensaje indicativo
+        return 'Tu consulta está siendo atendida por un agente. Te responderá en breve 👨‍💼';
+      }
+    }
+    
     const messageHistory = await conversationService.getMessageHistory(phoneNumber);
     
     // Convertir historial de DB a formato OpenAI (solo los últimos 6 mensajes)
