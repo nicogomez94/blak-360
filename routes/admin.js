@@ -110,6 +110,7 @@ router.get('/', (req, res) => {
         .btn-manual { background: #ff6b6b; color: white; }
         .btn-auto { background: #51cf66; color: white; }
         .btn-view { background: #339af0; color: white; }
+        .btn-delete { background: #e74c3c; color: white; border: none; padding: 0.25rem 0.5rem; }
         .manual-mode { border-left: 4px solid #ff6b6b; }
         .auto-mode { border-left: 4px solid #51cf66; }
         .modal {
@@ -692,6 +693,7 @@ router.get('/', (req, res) => {
                                 \`<button class="btn btn-auto" onclick="setMode('\${conv.phoneNumber}', 'auto')">Auto</button>\` :
                                 \`<button class="btn btn-manual" onclick="setMode('\${conv.phoneNumber}', 'manual')">Manual</button>\`
                             }
+                            <button class="btn btn-delete" onclick="deleteConversation('\${conv.phoneNumber}')">🗑️</button>
                         </div>
                     </div>
                 \`;
@@ -784,6 +786,52 @@ router.get('/', (req, res) => {
             } catch (error) {
                 console.error('Error:', error);
                 alert('❌ Error de conexión. Verifica tu conexión a internet.');
+            }
+        }
+
+        async function deleteConversation(phoneNumber) {
+            // Obtener información de la conversación actual
+            const conversationElement = document.querySelector(\`[data-phone="\${phoneNumber}"]\`);
+            const contactName = conversationElement ? 
+                conversationElement.querySelector('.conversation-name').textContent.split('(')[0].trim() : 
+                'Cliente';
+            
+            // Mensaje de confirmación con advertencia
+            const confirmMessage = \`⚠️ ¿BORRAR COMPLETAMENTE la conversación de \${contactName}?\\n\\n\` +
+                                 \`📞 Número: \${phoneNumber}\\n\` +
+                                 \`❌ Se eliminarán TODOS los mensajes\\n\` +
+                                 \`🔄 Si escribe de nuevo, iniciará una conversación desde cero\\n\\n\` +
+                                 \`Esta acción NO se puede deshacer.\`;
+            
+            // Mostrar confirmación
+            if (!confirm(confirmMessage)) {
+                return; // Usuario canceló
+            }
+            
+            try {
+                const response = await fetch(\`/admin/api/conversations/\${phoneNumber}\`, {
+                    method: 'DELETE'
+                });
+                
+                if (response.ok) {
+                    // Si estamos viendo esta conversación, cerrar el modal
+                    if (currentConversation === phoneNumber) {
+                        closeModal();
+                        currentConversation = null;
+                    }
+                    
+                    loadData(); // Recargar la lista de conversaciones
+                    
+                    // Mostrar notificación de éxito
+                    showNotification(\`🗑️ Conversación de \${contactName} eliminada completamente\`);
+                    
+                } else {
+                    const errorData = await response.json();
+                    alert(\`❌ Error borrando conversación: \${errorData.error || 'Error desconocido'}\`);
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                alert('❌ Error de conexión. No se pudo borrar la conversación.');
             }
         }
 
@@ -1118,6 +1166,28 @@ router.post('/api/send/:phoneNumber', async (req, res) => {
     });
   } catch (error) {
     console.error('Error enviando mensaje:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+/**
+ * API: Borrar conversación completa
+ */
+router.delete('/api/conversations/:phoneNumber', async (req, res) => {
+  try {
+    const { phoneNumber } = req.params;
+    
+    const result = await conversationService.deleteConversation(phoneNumber);
+    
+    console.log(`🗑️ Admin borró conversación: ${phoneNumber}`);
+    
+    res.json({
+      success: true,
+      message: result.message,
+      deletedPhone: result.deletedPhone
+    });
+  } catch (error) {
+    console.error('Error borrando conversación:', error);
     res.status(500).json({ error: error.message });
   }
 });

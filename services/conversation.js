@@ -641,6 +641,48 @@ class ConversationService {
       global.io.emit('message-update', eventData);
     }
   }
+
+  /**
+   * Borrar completamente una conversación y todos sus mensajes
+   */
+  async deleteConversation(phoneNumber) {
+    const cleanPhone = this.cleanPhoneNumber(phoneNumber);
+    
+    if (!this.useDatabase) {
+      // Borrar de memoria
+      this.cache.delete(cleanPhone);
+      this.messageHistory.delete(cleanPhone);
+      console.log(`🗑️ Conversación borrada de memoria: ${cleanPhone}`);
+      return { success: true, message: 'Conversación borrada de memoria' };
+    }
+
+    try {
+      // Borrar mensajes primero
+      await db.query('DELETE FROM messages WHERE phone_number = $1', [cleanPhone]);
+      
+      // Borrar conversación
+      const result = await db.query('DELETE FROM conversations WHERE phone_number = $1 RETURNING *', [cleanPhone]);
+      
+      if (result.rowCount === 0) {
+        throw new Error('Conversación no encontrada');
+      }
+      
+      console.log(`🗑️ Conversación completamente borrada de DB: ${cleanPhone}`);
+      
+      // También borrar de memoria cache si existe
+      this.cache.delete(cleanPhone);
+      this.messageHistory.delete(cleanPhone);
+      
+      return { 
+        success: true, 
+        message: `Conversación ${cleanPhone} borrada completamente`,
+        deletedPhone: cleanPhone
+      };
+    } catch (error) {
+      console.error('❌ Error borrando conversación:', error);
+      throw new Error(`Error borrando conversación: ${error.message}`);
+    }
+  }
 }
 
 module.exports = new ConversationService();
