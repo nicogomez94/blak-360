@@ -411,6 +411,68 @@ class ConversationService {
   }
 
   /**
+   * Obtener todas las conversaciones (no solo las activas)
+   */
+  async getAllConversations() {
+    if (!this.useDatabase) {
+      // Fallback a memoria
+      const all = [];
+
+      for (const [phoneNumber, conversation] of this.cache.entries()) {
+        const messages = await this.getMessageHistory(phoneNumber, 5); // Últimos 5 mensajes
+        all.push({
+          ...conversation,
+          recentMessages: messages
+        });
+      }
+
+      return all.sort((a, b) => new Date(b.lastActivity) - new Date(a.lastActivity));
+    }
+
+    try {
+      const result = await db.query(`
+        SELECT c.*, 
+               COUNT(m.id) as total_messages,
+               MAX(m.timestamp) as last_message_time
+        FROM conversations c
+        LEFT JOIN messages m ON c.phone_number = m.phone_number
+        GROUP BY c.id, c.phone_number, c.contact_name, c.is_manual_mode, 
+                 c.assigned_admin, c.manual_mode_started, c.manual_mode_ended,
+                 c.message_count, c.last_activity, c.created_at, c.updated_at
+        ORDER BY c.last_activity DESC
+      `);
+
+      const conversations = [];
+      
+      for (const row of result.rows) {
+        const conversation = this.mapDbRowToConversation(row);
+        
+        // Obtener mensajes recientes para cada conversación
+        const recentMessages = await this.getMessageHistory(conversation.phoneNumber, 5);
+        
+        conversations.push({
+          ...conversation,
+          recentMessages
+        });
+      }
+
+      return conversations;
+    } catch (error) {
+      console.error('❌ Error obteniendo todas las conversaciones (usando fallback):', error);
+      // Fallback a memoria sin base de datos
+      const all = [];
+      for (const [phoneNumber, conversation] of this.cache.entries()) {
+        const messages = await this.getMessageHistory(phoneNumber, 5);
+        all.push({
+          ...conversation,
+          recentMessages: messages
+        });
+      }
+      return all.sort((a, b) => new Date(b.lastActivity) - new Date(a.lastActivity));
+    }
+  }
+
+  /**
    * Limpiar número de teléfono para consistencia
    */
   cleanPhoneNumber(phoneNumber) {

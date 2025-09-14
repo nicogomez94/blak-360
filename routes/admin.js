@@ -629,8 +629,8 @@ router.get('/', (req, res) => {
                 case 'activeToday':
                     return conversations.filter(conv => {
                         const lastActivity = new Date(conv.lastActivity);
-                        lastActivity.setHours(0, 0, 0, 0);
-                        return lastActivity >= today;
+                        const twentyFourHoursAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
+                        return lastActivity > twentyFourHoursAgo;
                     });
                 case 'manual':
                     return conversations.filter(conv => conv.isManualMode);
@@ -1018,11 +1018,11 @@ router.get('/api/stats', async (req, res) => {
 });
 
 /**
- * API: Obtener conversaciones activas
+ * API: Obtener todas las conversaciones
  */
 router.get('/api/conversations', async (req, res) => {
   try {
-    const conversations = await conversationService.getActiveConversations();
+    const conversations = await conversationService.getAllConversations();
     res.json(conversations);
   } catch (error) {
     console.error('Error obteniendo conversaciones:', error);
