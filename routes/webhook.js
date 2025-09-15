@@ -172,21 +172,10 @@ router.post('/whatsapp', async (req, res) => {
       console.log(`💬 Mensaje: "${messageText.trim()}"`);
       console.log('⏳ Esperando intervención manual del administrador...');
       
-      // Solo responder con confirmación si no hay actividad reciente del admin
-      const conversation = await conversationService.getConversation(fromNumber);
-      const recentMessages = await conversationService.getMessageHistory(fromNumber, 3);
-      const hasRecentAdminMessage = recentMessages && recentMessages.some(msg => 
-        msg.sender === 'admin' && 
-        (new Date() - new Date(msg.timestamp)) < 5 * 60 * 1000 // 5 minutos
-      );
-      
-  if (!hasRecentAdminMessage) {
-        const waitMessage = "Gracias por tu mensaje. Un agente te atenderá en breve. 👨‍💼";
-        await messageService.sendMessage(`whatsapp:+${fromNumber}`, waitMessage);
-        await conversationService.addMessage(fromNumber, waitMessage, 'ai', contactName);
-      }
-  // Ya se respondió al inicio
-  return;
+      // En modo manual NO se envía ningún mensaje automático
+      // El administrador debe responder manualmente desde el dashboard
+      console.log('🤫 No se enviará respuesta automática - Modo manual activo');
+      return;
     }
     
     console.log('🤖 Conversación en modo AUTOMÁTICO - Procesando con IA');

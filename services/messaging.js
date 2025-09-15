@@ -6,12 +6,19 @@
 const axios = require('axios');
 
 // Configuración de 360dialog
-const D360_API_KEY = process.env.D360_API_KEY;
-const D360_API_URL = process.env.D360_API_URL || 'https://waba-v2.360dialog.io';
+const D360_API_KEY = process.env.DIALOG360_API_KEY || process.env.D360_API_KEY;
+const D360_API_URL = process.env.NODE_ENV === 'development' ? 'https://waba-sandbox.360dialog.io' : (process.env.D360_API_URL || 'https://waba-v2.360dialog.io');
+
+// Detectar entorno
+const isDevelopment = process.env.NODE_ENV === 'development' || process.env.SANDBOX_MODE === 'true';
+const SANDBOX_PHONE = process.env.SANDBOX_PHONE_NUMBER;
 
 // Verificar configuración
 if (D360_API_KEY) {
-  console.log('✅ API Key de 360dialog configurada');
+  console.log(`✅ API Key de 360dialog configurada (Entorno: ${isDevelopment ? 'DESARROLLO' : 'PRODUCCIÓN'})`);
+  if (isDevelopment && SANDBOX_PHONE) {
+    console.log(`🧪 Sandbox activo - Número de prueba: ${SANDBOX_PHONE}`);
+  }
 } else {
   console.warn('⚠️  D360_API_KEY no configurada. Agrega tu API Key de 360dialog en el archivo .env');
 }
