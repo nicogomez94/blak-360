@@ -760,8 +760,9 @@ router.get('/', (req, res) => {
                 actionEmoji = '🤖';
             }
             
-            // Mostrar confirmación
-            if (!confirm(confirmMessage)) {
+            // Mostrar confirmación personalizada
+            const confirmed = await showCustomConfirm(confirmMessage);
+            if (!confirmed) {
                 return; // Usuario canceló
             }
             
@@ -803,8 +804,9 @@ router.get('/', (req, res) => {
                                  \`🔄 Si escribe de nuevo, iniciará una conversación desde cero\\n\\n\` +
                                  \`Esta acción NO se puede deshacer.\`;
             
-            // Mostrar confirmación
-            if (!confirm(confirmMessage)) {
+            // Mostrar confirmación personalizada
+            const confirmed = await showCustomConfirm(confirmMessage);
+            if (!confirmed) {
                 return; // Usuario canceló
             }
             
@@ -941,8 +943,14 @@ router.get('/', (req, res) => {
                     input.value = '';
                     input.style.height = 'auto';
                     
-                    // Activar modo manual automáticamente
-                    await setMode(currentConversation, 'manual');
+                    // Verificar si ya está en modo manual antes de activarlo
+                    const currentResponse = await fetch(\`/admin/api/conversation/\${currentConversation}\`);
+                    const currentData = await currentResponse.json();
+                    
+                    if (!currentData.conversation.isManualMode) {
+                        // Solo activar modo manual si no está activado
+                        await setMode(currentConversation, 'manual');
+                    }
                     
                     // Recargar conversación con animación
                     await viewConversation(currentConversation);
@@ -1020,6 +1028,111 @@ router.get('/', (req, res) => {
             if (indicator) {
                 indicator.remove();
             }
+        }
+
+        // Función de confirmación personalizada para evitar problemas de z-index
+        function showCustomConfirm(message) {
+            return new Promise((resolve) => {
+                // Crear modal de confirmación
+                const confirmModal = document.createElement('div');
+                confirmModal.className = 'custom-confirm-modal';
+                confirmModal.style.cssText = \`
+                    position: fixed;
+                    top: 0;
+                    left: 0;
+                    width: 100%;
+                    height: 100%;
+                    background: rgba(0,0,0,0.7);
+                    z-index: 9999;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+                \`;
+                
+                const confirmBox = document.createElement('div');
+                confirmBox.style.cssText = \`
+                    background: white;
+                    padding: 2rem;
+                    border-radius: 12px;
+                    max-width: 400px;
+                    margin: 0 1rem;
+                    box-shadow: 0 8px 32px rgba(0,0,0,0.3);
+                    text-align: center;
+                \`;
+                
+                const messageP = document.createElement('p');
+                messageP.textContent = message;
+                messageP.style.cssText = \`
+                    margin-bottom: 2rem;
+                    line-height: 1.5;
+                    color: #333;
+                    white-space: pre-line;
+                \`;
+                
+                const buttonContainer = document.createElement('div');
+                buttonContainer.style.cssText = \`
+                    display: flex;
+                    gap: 1rem;
+                    justify-content: center;
+                \`;
+                
+                const cancelBtn = document.createElement('button');
+                cancelBtn.textContent = 'Cancelar';
+                cancelBtn.style.cssText = \`
+                    padding: 0.75rem 1.5rem;
+                    border: 2px solid #ddd;
+                    background: white;
+                    color: #666;
+                    border-radius: 8px;
+                    cursor: pointer;
+                    font-weight: 500;
+                \`;
+                
+                const confirmBtn = document.createElement('button');
+                confirmBtn.textContent = 'Aceptar';
+                confirmBtn.style.cssText = \`
+                    padding: 0.75rem 1.5rem;
+                    border: none;
+                    background: #e74c3c;
+                    color: white;
+                    border-radius: 8px;
+                    cursor: pointer;
+                    font-weight: 500;
+                \`;
+                
+                // Eventos
+                cancelBtn.onclick = () => {
+                    document.body.removeChild(confirmModal);
+                    resolve(false);
+                };
+                
+                confirmBtn.onclick = () => {
+                    document.body.removeChild(confirmModal);
+                    resolve(true);
+                };
+                
+                // Escape key
+                const escapeHandler = (e) => {
+                    if (e.key === 'Escape') {
+                        document.body.removeChild(confirmModal);
+                        document.removeEventListener('keydown', escapeHandler);
+                        resolve(false);
+                    }
+                };
+                document.addEventListener('keydown', escapeHandler);
+                
+                // Armar y mostrar
+                buttonContainer.appendChild(cancelBtn);
+                buttonContainer.appendChild(confirmBtn);
+                confirmBox.appendChild(messageP);
+                confirmBox.appendChild(buttonContainer);
+                confirmModal.appendChild(confirmBox);
+                document.body.appendChild(confirmModal);
+                
+                // Focus en el botón de cancelar por defecto
+                cancelBtn.focus();
+            });
         }
 
         function closeModal() {
@@ -1151,8 +1264,12 @@ router.post('/api/send/:phoneNumber', async (req, res) => {
       return res.status(400).json({ error: 'Mensaje requerido' });
     }
     
+    // Obtener el nombre del contacto de la conversación existente
+    const conversation = await conversationService.getConversation(phoneNumber);
+    const contactName = conversation.contactName || 'Cliente';
+    
     // Agregar mensaje al historial como admin
-    await conversationService.addMessage(phoneNumber, message, 'admin');
+    await conversationService.addMessage(phoneNumber, message, 'admin', contactName);
     
     // Enviar mensaje por WhatsApp
     const messageService = require('../services/messaging');
