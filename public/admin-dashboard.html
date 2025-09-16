@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BLAK Dashboard - Gestión WhatsApp</title>
+    <script src="/socket.io/socket.io.js"></script>
+    <link rel="stylesheet" href="admin-dashboard.css">
+</head>
+<body>
+    <div class="header">
+        <h1>⚡ BLAK DASHBOARD</h1>
+        <p>Sistema de Gestión de Conversaciones WhatsApp</p>
+    </div>
+
+    <div class="container">
+        <div class="stats" id="stats">
+            <!-- Se carga dinámicamente -->
+        </div>
+
+        <div class="conversations">
+            <div class="conversations-header">
+                <h2>Conversaciones Activas</h2>
+                <button class="refresh-btn" onclick="loadData()">🔄 Actualizar</button>
+            </div>
+            <div id="conversations-list">
+                <!-- Se carga dinámicamente -->
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal para ver conversación -->
+    <div id="conversationModal" class="modal">
+        <div class="modal-content">
+            <!-- Header del Chat -->
+            <div class="chat-header">
+                <div class="chat-header-info">
+                    <div class="chat-avatar" id="chatAvatar">👤</div>
+                    <div>
+                        <div class="chat-name" id="chatName">Conversación</div>
+                        <div class="chat-status" id="chatStatus">En línea</div>
+                    </div>
+                </div>
+                <span class="close" onclick="closeModal()" style="font-size: 1.5rem; cursor: pointer;">&times;</span>
+            </div>
+            
+            <!-- Área de Mensajes -->
+            <div class="messages-container" id="modalMessages">
+                <!-- Los mensajes se cargan aquí -->
+            </div>
+            
+            <!-- Área de Envío -->
+            <div class="send-message">
+                <textarea 
+                    class="message-input" 
+                    id="messageInput" 
+                    placeholder="Escribe un mensaje..."
+                    rows="1"
+                    onkeydown="handleKeyPress(event)"
+                    oninput="autoResize(this)"
+                ></textarea>
+                <button class="send-btn" id="sendBtn" onclick="sendMessage()" disabled>
+                    ➤
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script src="admin-dashboard.js"></script>
+</body>
+</html>

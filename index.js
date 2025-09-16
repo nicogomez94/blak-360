@@ -50,6 +50,9 @@ global.io = io;
 app.use(bodyParser.urlencoded({ extended: false }));
 app.use(bodyParser.json());
 
+// Servir archivos estáticos desde la carpeta public
+app.use(express.static('public'));
+
 // Rutas para el panel de administración (ANTES de los middlewares de captura)
 app.use('/admin', adminRoutes);
 
