@@ -4,9 +4,25 @@
     {
       "src": "index.js",
       "use": "@vercel/node"
+    },
+    {
+      "src": "public/**",
+      "use": "@vercel/static"
     }
   ],
   "routes": [
+    {
+      "src": "/admin-dashboard\\.(css|js)",
+      "dest": "/public/$0"
+    },
+    {
+      "src": "/webhook(.*)",
+      "dest": "/index.js"
+    },
+    {
+      "src": "/admin(.*)",
+      "dest": "/index.js"
+    },
     {
       "src": "/(.*)",
       "dest": "/index.js"
