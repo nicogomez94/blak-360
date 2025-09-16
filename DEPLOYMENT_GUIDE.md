@@ -85,7 +85,13 @@ curl --request POST \
 
 ## 🔄 Para desarrollo local (Sandbox)
 
-Usá el script que ya tenés configurado:
+Para que funcione el entorno de desarrollo con el sandbox, ejecutá:
+
+```bash
+npm run dev:sandbox
+```
+
+O también podés usar el script:
 
 ```bash
 ./dev-start.sh

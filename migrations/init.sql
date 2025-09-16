@@ -37,6 +37,9 @@ BEGIN
 END;
 $$ language 'plpgsql';
 
+-- Eliminar trigger si existe antes de crearlo
+DROP TRIGGER IF EXISTS update_conversations_updated_at ON conversations;
+
 -- Crear trigger para actualizar updated_at en conversations
 CREATE TRIGGER update_conversations_updated_at 
     BEFORE UPDATE ON conversations 

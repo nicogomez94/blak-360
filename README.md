@@ -111,7 +111,10 @@ curl http://localhost:3000/webhook/status
 - `GET /webhook/status` - Estado del webhook
 - `POST /webhook/test` - Enviar mensaje de prueba
 
-SETEAR WEBHOOK CALLBACJ URL
+
+****************************
+****************************
+SETEAR WEBHOOK CALLBACK URL
 
 curl -X POST "https://waba-v2.360dialog.io/v1/configs/webhook" \
   -H "D360-API-KEY: XXXXXXXXXXXXXXXXXXXXX" \
@@ -124,6 +127,15 @@ CHECK
 
 curl -X GET "https://waba-v2.360dialog.io/v1/configs/webhook" \
   -H "D360-API-KEY: XXXXXXXXXXXXXXXXXX"
+
+!!!!!!!!!!!!!!!!!!!!!!!!
+PARA SANDBOX ES https://waba-sandbox.360dialog.io/v1/configs/webhook
+!!!!!!!!!!!!!!!!!!!!!!!!
+
+****************************
+********************************************************
+****************************
+
 
 ## 📁 Estructura del Proyecto
 

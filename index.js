@@ -3,7 +3,12 @@
  * Integra OpenAI, Express y PostgreSQL
  */
 
-require('dotenv').config();
+// Cargar variables de entorno
+if (process.env.NODE_ENV === 'development') {
+  require('dotenv').config({ path: '.env.development' });
+} else {
+  require('dotenv').config();
+}
 const express = require('express');
 const bodyParser = require('body-parser');
 const http = require('http');
