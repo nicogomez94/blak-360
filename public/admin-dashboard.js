@@ -6,6 +6,12 @@ let currentFilter = 'all'; // Filtro actual
 
 // Conectar WebSocket para tiempo real
 function connectWebSocket() {
+    // Detectar si estamos en producción (Vercel no soporta WebSockets)
+    if (window.location.hostname.includes('vercel.app')) {
+        console.log('🚫 WebSocket deshabilitado en producción (Vercel)');
+        return;
+    }
+    
     socket = io();
     
     socket.on('connect', () => {
@@ -47,6 +53,15 @@ function handleNewMessage(data) {
     const emoji = data.message.sender === 'user' ? '💬' : 
                  (data.message.sender === 'ai' ? '🤖' : '👨‍💼');
     showNotification(`${emoji} Nuevo mensaje de ${data.contactName}`);
+}
+
+// Función alternativa para polling en producción
+function checkForUpdates() {
+    if (!window.location.hostname.includes('vercel.app')) return;
+    
+    // En producción, verificar actualizaciones cada cierto tiempo
+    // Esta es una implementación básica, se puede mejorar
+    loadData();
 }
 
 // Mostrar notificación moderna
@@ -668,8 +683,11 @@ function closeModal() {
 connectWebSocket();
 loadData();
 
-// Auto-refresh cada 60 segundos (menos frecuente porque WebSocket maneja tiempo real)
-setInterval(loadData, 60000);
+// Auto-refresh: más frecuente en producción donde no hay WebSocket
+const refreshInterval = window.location.hostname.includes('vercel.app') ? 10000 : 60000;
+setInterval(loadData, refreshInterval);
+
+console.log(`🔄 Auto-refresh configurado cada ${refreshInterval/1000} segundos`);
 
 // Cerrar modal al presionar Escape
 document.addEventListener('keydown', function(e) {
