@@ -17,102 +17,236 @@ router.get('/', (req, res) => {
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Dashboard - WhatsApp Bot</title>
+    <title>BLAK Dashboard - Gestión WhatsApp</title>
     <script src="/socket.io/socket.io.js"></script>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body { 
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-            background: #f5f5f5;
-            color: #333;
+            background: #0a0a0a;
+            color: #ffffff;
+            min-height: 100vh;
         }
         .header {
-            background: #25D366;
-            color: white;
-            padding: 1rem 2rem;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            background: linear-gradient(135deg, #00ff41, #00b82d);
+            color: #000000;
+            padding: 3rem 2rem;
+            box-shadow: 0 8px 32px rgba(0,255,65,0.3);
+            text-align: center;
+            position: relative;
+            overflow: hidden;
+        }
+        .header::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23000000' fill-opacity='0.05'%3E%3Ccircle cx='30' cy='30' r='4'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E");
+            z-index: 1;
+        }
+        .header h1 {
+            position: relative;
+            z-index: 2;
+            font-size: 3rem;
+            font-weight: 800;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            text-shadow: 0 2px 4px rgba(0,0,0,0.2);
+            margin-bottom: 0.5rem;
+        }
+        .header p {
+            position: relative;
+            z-index: 2;
+            font-size: 1.2rem;
+            font-weight: 500;
+            opacity: 0.8;
         }
         .container { max-width: 1200px; margin: 2rem auto; padding: 0 1rem; }
         .stats {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-            gap: 1rem;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 1.5rem;
             margin-bottom: 2rem;
         }
         .stat-card {
-            background: white;
-            padding: 1.5rem;
-            border-radius: 8px;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            background: linear-gradient(135deg, #1a1a1a, #2a2a2a);
+            padding: 2rem;
+            border-radius: 12px;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.5);
             text-align: center;
             transition: all 0.3s ease;
+            border: 1px solid #333;
+            position: relative;
+            overflow: hidden;
+        }
+        .stat-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 3px;
+            background: linear-gradient(90deg, #00ff41, #00b82d);
+            opacity: 0;
+            transition: opacity 0.3s ease;
         }
         .filter-card {
             cursor: pointer;
         }
         .filter-card:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 4px 8px rgba(0,0,0,0.15);
+            transform: translateY(-8px);
+            box-shadow: 0 16px 48px rgba(0,255,65,0.2);
+            border-color: #00ff41;
+        }
+        .filter-card:hover::before {
+            opacity: 1;
         }
         .filter-card.active-filter {
-            background: linear-gradient(135deg, #25D366, #128C7E);
-            color: white;
+            background: linear-gradient(135deg, #00ff41, #00b82d);
+            color: #000;
+            border-color: #00ff41;
+            box-shadow: 0 16px 48px rgba(0,255,65,0.4);
+        }
+        .filter-card.active-filter::before {
+            opacity: 0;
         }
         .filter-card.active-filter .stat-number,
         .filter-card.active-filter .stat-label {
-            color: white;
+            color: #000;
         }
-        .stat-number { font-size: 2rem; font-weight: bold; color: #25D366; }
-        .stat-label { color: #666; margin-top: 0.5rem; }
+        .stat-number { 
+            font-size: 2.5rem; 
+            font-weight: 800; 
+            color: #00ff41; 
+            text-shadow: 0 0 10px rgba(0,255,65,0.3);
+        }
+        .stat-label { 
+            color: #bbb; 
+            margin-top: 0.8rem; 
+            font-weight: 600;
+            text-transform: uppercase;
+            font-size: 0.9rem;
+            letter-spacing: 1px;
+        }
         .conversations {
-            background: white;
-            border-radius: 8px;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            background: linear-gradient(135deg, #1a1a1a, #2a2a2a);
+            border-radius: 12px;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.5);
             overflow: hidden;
+            border: 1px solid #333;
         }
         .conversations-header {
-            background: #f8f9fa;
-            padding: 1rem 1.5rem;
-            border-bottom: 1px solid #eee;
+            background: linear-gradient(135deg, #00ff41, #00b82d);
+            color: #000;
+            padding: 1.5rem 2rem;
+            border-bottom: 1px solid #00ff41;
             display: flex;
             justify-content: space-between;
             align-items: center;
+        }
+        .conversations-header h2 {
+            font-size: 1.5rem;
+            font-weight: 800;
+            text-transform: uppercase;
+            letter-spacing: 1px;
         }
         .refresh-btn {
-            background: #25D366;
-            color: white;
-            border: none;
-            padding: 0.5rem 1rem;
-            border-radius: 4px;
+            background: #000;
+            color: #00ff41;
+            border: 2px solid #00ff41;
+            padding: 0.8rem 1.5rem;
+            border-radius: 8px;
             cursor: pointer;
+            font-weight: 600;
+            text-transform: uppercase;
+            transition: all 0.3s ease;
+            font-size: 0.9rem;
+        }
+        .refresh-btn:hover {
+            background: #00ff41;
+            color: #000;
+            transform: scale(1.05);
         }
         .conversation {
-            padding: 1rem 1.5rem;
-            border-bottom: 1px solid #eee;
+            padding: 1.5rem 2rem;
+            border-bottom: 1px solid #333;
             display: flex;
             justify-content: space-between;
             align-items: center;
+            transition: all 0.3s ease;
         }
-        .conversation:hover { background: #f8f9fa; }
-        .conversation-info h3 { margin-bottom: 0.25rem; }
-        .conversation-meta { color: #666; font-size: 0.9rem; }
+        .conversation:hover { 
+            background: linear-gradient(135deg, #2a2a2a, #3a3a3a); 
+            border-left: 4px solid #00ff41;
+        }
+        .conversation-info h3 { 
+            margin-bottom: 0.5rem; 
+            color: #ffffff;
+            font-size: 1.1rem;
+        }
+        .conversation-meta { 
+            color: #bbb; 
+            font-size: 0.9rem; 
+        }
         .conversation-actions {
             display: flex;
-            gap: 0.5rem;
+            gap: 0.8rem;
         }
         .btn {
-            padding: 0.5rem 1rem;
+            padding: 0.6rem 1.2rem;
             border: none;
-            border-radius: 4px;
+            border-radius: 8px;
             cursor: pointer;
             font-size: 0.9rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            transition: all 0.3s ease;
         }
-        .btn-manual { background: #ff6b6b; color: white; }
-        .btn-auto { background: #51cf66; color: white; }
-        .btn-view { background: #339af0; color: white; }
-        .btn-delete { background: #e74c3c; color: white; border: none; padding: 0.25rem 0.5rem; }
-        .manual-mode { border-left: 4px solid #ff6b6b; }
-        .auto-mode { border-left: 4px solid #51cf66; }
+        .btn-manual { 
+            background: #ff4444; 
+            color: white; 
+            border: 2px solid #ff4444;
+        }
+        .btn-manual:hover {
+            background: transparent;
+            border-color: #ff4444;
+            color: #ff4444;
+        }
+        .btn-auto { 
+            background: #00ff41; 
+            color: #000; 
+            border: 2px solid #00ff41;
+        }
+        .btn-auto:hover {
+            background: transparent;
+            border-color: #00ff41;
+            color: #00ff41;
+        }
+        .btn-view { 
+            background: #0099ff; 
+            color: white; 
+            border: 2px solid #0099ff;
+        }
+        .btn-view:hover {
+            background: transparent;
+            border-color: #0099ff;
+            color: #0099ff;
+        }
+        .btn-delete { 
+            background: #ff4444; 
+            color: white; 
+            border: 2px solid #ff4444; 
+            padding: 0.4rem 0.8rem; 
+        }
+        .btn-delete:hover {
+            background: transparent;
+            border-color: #ff4444;
+            color: #ff4444;
+        }
+        .manual-mode { border-left: 4px solid #ff4444; }
+        .auto-mode { border-left: 4px solid #00ff41; }
         .modal {
             display: none;
             position: fixed;
@@ -120,23 +254,34 @@ router.get('/', (req, res) => {
             left: 0;
             width: 100%;
             height: 100%;
-            background: rgba(0,0,0,0.5);
+            background: rgba(0,0,0,0.8);
             z-index: 1000;
+            backdrop-filter: blur(5px);
         }
         .modal-content {
-            background: white;
-            margin: 5% auto;
-            padding: 2rem;
-            width: 80%;
-            max-width: 600px;
-            border-radius: 8px;
-            max-height: 80vh;
-            overflow-y: auto;
+            background: #1a1a1a;
+            border: 1px solid #333;
+            margin: 2% auto;
+            padding: 0;
+            width: 90%;
+            max-width: 800px;
+            border-radius: 12px;
+            max-height: 90vh;
+            overflow: hidden;
+            box-shadow: 0 16px 48px rgba(0,0,0,0.8);
+            animation: fadeIn 0.3s ease;
         }
         .close {
             float: right;
             font-size: 1.5rem;
             cursor: pointer;
+            color: #fff;
+            padding: 0.5rem;
+            transition: all 0.3s ease;
+        }
+        .close:hover {
+            color: #00ff41;
+            transform: scale(1.2);
         }
         /* Estilos del Modal Chat WhatsApp */
         .modal-content {
@@ -154,12 +299,13 @@ router.get('/', (req, res) => {
         
         /* Header del Chat */
         .chat-header {
-            background: linear-gradient(135deg, #25D366, #128C7E);
-            color: white;
-            padding: 1rem 1.5rem;
+            background: linear-gradient(135deg, #00ff41, #00b82d);
+            color: #000;
+            padding: 1.5rem 2rem;
             display: flex;
             align-items: center;
             justify-content: space-between;
+            box-shadow: 0 4px 16px rgba(0,255,65,0.3);
         }
         
         .chat-header-info {
@@ -169,34 +315,40 @@ router.get('/', (req, res) => {
         }
         
         .chat-avatar {
-            width: 40px;
-            height: 40px;
+            width: 50px;
+            height: 50px;
             border-radius: 50%;
-            background: #128C7E;
+            background: #000;
+            color: #00ff41;
+            border: 2px solid #00ff41;
             display: flex;
             align-items: center;
             justify-content: center;
-            font-weight: bold;
-            font-size: 1.2rem;
+            font-weight: 800;
+            font-size: 1.4rem;
+            text-shadow: 0 0 10px rgba(0,255,65,0.5);
         }
         
         .chat-name {
-            font-size: 1.1rem;
-            font-weight: 500;
+            font-size: 1.3rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 1px;
         }
         
         .chat-status {
-            font-size: 0.8rem;
-            opacity: 0.9;
+            font-size: 0.9rem;
+            opacity: 0.8;
+            font-weight: 600;
         }
         
         /* Área de Mensajes */
         .messages-container {
-            height: 400px;
+            height: 450px;
             overflow-y: auto;
-            padding: 1rem;
-            background: #e5ddd5;
-            background-image: url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23d4edda' fill-opacity='0.1'%3E%3Ccircle cx='30' cy='30' r='4'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E");
+            padding: 1.5rem;
+            background: #0a0a0a;
+            background-image: url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%2300ff41' fill-opacity='0.03'%3E%3Ccircle cx='30' cy='30' r='4'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E");
         }
         
         /* Mensajes estilo WhatsApp */
@@ -225,33 +377,42 @@ router.get('/', (req, res) => {
         
         /* Burbujas de usuario (derecha) */
         .message-user .message-bubble {
-            background: #dcf8c6;
+            background: linear-gradient(135deg, #00ff41, #00b82d);
+            color: #000;
             border-bottom-right-radius: 5px;
+            box-shadow: 0 4px 16px rgba(0,255,65,0.3);
         }
         
         
         /* Burbujas de IA/Admin (izquierda) */
         .message-ai .message-bubble, .message-admin .message-bubble {
-            background: white;
+            background: linear-gradient(135deg, #2a2a2a, #3a3a3a);
+            color: #ffffff;
+            border: 1px solid #444;
             border-bottom-left-radius: 5px;
+            box-shadow: 0 4px 16px rgba(0,0,0,0.5);
         }
         
         .message-sender {
-            font-weight: bold;
+            font-weight: 700;
             font-size: 0.9rem;
             margin-bottom: 0.3rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
         }
         
         .message-user .message-sender {
-            color: #128C7E;
+            color: #000;
         }
         
         .message-ai .message-sender {
-            color: #25D366;
+            color: #00ff41;
+            text-shadow: 0 0 5px rgba(0,255,65,0.5);
         }
         
         .message-admin .message-sender {
-            color: #ff6b6b;
+            color: #ff4444;
+            text-shadow: 0 0 5px rgba(255,68,68,0.5);
         }
         
         .message-text {
@@ -267,46 +428,59 @@ router.get('/', (req, res) => {
         
         /* Área de envío */
         .send-message {
-            padding: 1rem;
-            background: #f0f0f0;
+            padding: 1.5rem;
+            background: #1a1a1a;
+            border-top: 1px solid #333;
             display: flex;
-            gap: 0.8rem;
+            gap: 1rem;
             align-items: flex-end;
         }
         
         .message-input {
             flex: 1;
-            padding: 0.8rem 1rem;
-            border: none;
-            border-radius: 20px;
-            background: white;
+            padding: 1rem 1.5rem;
+            border: 2px solid #333;
+            border-radius: 25px;
+            background: #2a2a2a;
+            color: #ffffff;
             font-size: 1rem;
             outline: none;
             resize: none;
-            min-height: 40px;
-            max-height: 100px;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            min-height: 50px;
+            max-height: 120px;
+            box-shadow: 0 4px 16px rgba(0,0,0,0.5);
+            transition: all 0.3s ease;
+        }
+        
+        .message-input:focus {
+            border-color: #00ff41;
+            box-shadow: 0 4px 16px rgba(0,255,65,0.3);
+        }
+        
+        .message-input::placeholder {
+            color: #888;
         }
         
         .send-btn {
-            width: 48px;
-            height: 48px;
+            width: 56px;
+            height: 56px;
             border-radius: 50%;
-            border: none;
-            background: linear-gradient(135deg, #25D366, #128C7E);
-            color: white;
+            border: 2px solid #00ff41;
+            background: linear-gradient(135deg, #00ff41, #00b82d);
+            color: #000;
             cursor: pointer;
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 1.2rem;
-            transition: all 0.2s ease;
-            box-shadow: 0 2px 8px rgba(37, 211, 102, 0.3);
+            font-size: 1.4rem;
+            font-weight: bold;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 16px rgba(0,255,65,0.3);
         }
         
         .send-btn:hover {
-            transform: scale(1.05);
-            box-shadow: 0 4px 12px rgba(37, 211, 102, 0.5);
+            transform: scale(1.1);
+            box-shadow: 0 8px 24px rgba(0,255,65,0.5);
         }
         
         .send-btn:active {
@@ -322,20 +496,20 @@ router.get('/', (req, res) => {
         
         /* Scroll personalizado */
         .messages-container::-webkit-scrollbar {
-            width: 6px;
+            width: 8px;
         }
         
         .messages-container::-webkit-scrollbar-track {
-            background: transparent;
+            background: #1a1a1a;
         }
         
         .messages-container::-webkit-scrollbar-thumb {
-            background: rgba(0,0,0,0.2);
-            border-radius: 3px;
+            background: linear-gradient(135deg, #00ff41, #00b82d);
+            border-radius: 4px;
         }
         
         .messages-container::-webkit-scrollbar-thumb:hover {
-            background: rgba(0,0,0,0.3);
+            background: linear-gradient(135deg, #00b82d, #00ff41);
         }
         
         /* Animaciones */
@@ -402,27 +576,93 @@ router.get('/', (req, res) => {
         }
         
         .manual-info div {
-            background: linear-gradient(135deg, #e8f5e8, #f1f8f1) !important;
-            border: 1px solid #c8e6c9;
-            box-shadow: 0 2px 8px rgba(76, 175, 80, 0.1);
+            background: linear-gradient(135deg, #2a1a1a, #3a2a2a) !important;
+            border: 2px solid #ff4444;
+            box-shadow: 0 4px 16px rgba(255, 68, 68, 0.3);
+            color: #ffffff !important;
         }
         
         .auto-info div {
-            background: linear-gradient(135deg, #e3f2fd, #f0f7ff) !important;
-            border: 1px solid #bbdefb;
-            box-shadow: 0 2px 8px rgba(33, 150, 243, 0.1);
+            background: linear-gradient(135deg, #1a2a1a, #2a3a2a) !important;
+            border: 2px solid #00ff41;
+            box-shadow: 0 4px 16px rgba(0, 255, 65, 0.3);
+            color: #ffffff !important;
         }
         
         .mode-info small {
             opacity: 0.8;
             font-size: 0.85rem;
         }
+
+        /* Efectos adicionales Blak */
+        .stat-card:hover .stat-number {
+            text-shadow: 0 0 20px rgba(0,255,65,0.8);
+            transform: scale(1.1);
+        }
+
+        .conversation:hover .conversation-info h3 {
+            color: #00ff41;
+            transition: color 0.3s ease;
+        }
+
+        /* Pulsación de neón */
+        @keyframes neonPulse {
+            0%, 100% { 
+                box-shadow: 0 0 20px rgba(0,255,65,0.5);
+            }
+            50% { 
+                box-shadow: 0 0 40px rgba(0,255,65,0.8);
+            }
+        }
+
+        .filter-card.active-filter {
+            animation: neonPulse 2s ease-in-out infinite;
+        }
+
+        /* Efecto de entrada suave */
+        .conversation {
+            animation: slideUp 0.6s ease;
+        }
+
+        @keyframes slideUp {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        /* Hover mejorado para botones */
+        .btn:hover {
+            transform: translateY(-2px);
+            text-shadow: 0 0 10px currentColor;
+        }
+
+        /* Efecto glitch en el título */
+        .header h1 {
+            animation: glitch 3s ease-in-out infinite;
+        }
+
+        @keyframes glitch {
+            0%, 90%, 100% {
+                text-shadow: 0 2px 4px rgba(0,0,0,0.2);
+            }
+            95% {
+                text-shadow: 
+                    2px 0 0 #00ff41,
+                    -2px 0 0 #000,
+                    0 2px 4px rgba(0,0,0,0.2);
+            }
+        }
     </style>
 </head>
 <body>
     <div class="header">
-        <h1>🤖 Dashboard WhatsApp Bot</h1>
-        <p>Gestión de conversaciones en tiempo real</p>
+        <h1>⚡ BLAK DASHBOARD</h1>
+        <p>Sistema de Gestión de Conversaciones WhatsApp</p>
     </div>
 
     <div class="container">
@@ -541,17 +781,20 @@ router.get('/', (req, res) => {
                 position: fixed;
                 top: 20px;
                 right: 20px;
-                background: linear-gradient(135deg, #25D366, #128C7E);
-                color: white;
-                padding: 1rem 1.5rem;
+                background: linear-gradient(135deg, #00ff41, #00b82d);
+                color: #000;
+                padding: 1.2rem 2rem;
                 border-radius: 12px;
-                box-shadow: 0 8px 32px rgba(37, 211, 102, 0.3);
-                z-index: 1000;
+                border: 2px solid #00ff41;
+                box-shadow: 0 8px 32px rgba(0,255,65,0.4);
+                z-index: 10000;
                 animation: slideIn 0.4s ease;
-                font-weight: 500;
-                min-width: 200px;
-                max-width: 300px;
-                backdrop-filter: blur(10px);
+                font-weight: 700;
+                min-width: 250px;
+                max-width: 350px;
+                backdrop-filter: blur(15px);
+                text-transform: uppercase;
+                letter-spacing: 0.5px;
             \`;
             notification.innerHTML = \`
                 <div style="display: flex; align-items: center; gap: 0.5rem;">
