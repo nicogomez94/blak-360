@@ -8,6 +8,23 @@ const path = require('path');
 const conversationService = require('../services/conversation');
 const messageService = require('../services/messaging');
 
+// --- SSE: Clientes conectados ---
+let sseClients = [];
+
+// Endpoint SSE para eventos en tiempo real
+router.get('/events', (req, res) => {
+  res.set({
+    'Content-Type': 'text/event-stream',
+    'Cache-Control': 'no-cache',
+    'Connection': 'keep-alive',
+  });
+  res.flushHeaders();
+  sseClients.push(res);
+  req.on('close', () => {
+    sseClients = sseClients.filter(client => client !== res);
+  });
+});
+
 /**
  * Dashboard principal - Servir archivo HTML estático
  */
@@ -121,12 +138,27 @@ router.post('/api/send/:phoneNumber', async (req, res) => {
     
     // Agregar mensaje al historial como admin
     await conversationService.addMessage(phoneNumber, message, 'admin', contactName);
-    
+
     // Enviar mensaje por WhatsApp
     await messageService.sendMessage(phoneNumber, message);
-    
+
+    // Notificar a todos los clientes SSE
+    const sseData = {
+      type: 'message-update',
+      phoneNumber,
+      contactName,
+      message: {
+        sender: 'admin',
+        text: message,
+        timestamp: new Date().toISOString()
+      }
+    };
+    sseClients.forEach(res => {
+      res.write(`data: ${JSON.stringify(sseData)}\n\n`);
+    });
+
     console.log(`👨‍💼 Admin envió mensaje a ${phoneNumber}: "${message}"`);
-    
+
     res.json({
       success: true,
       message: 'Mensaje enviado correctamente'

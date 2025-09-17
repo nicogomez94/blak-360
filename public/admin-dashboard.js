@@ -4,25 +4,36 @@ let socket = null;
 let allConversations = []; // Array para almacenar todas las conversaciones
 let currentFilter = 'all'; // Filtro actual
 
-// Conectar WebSocket para tiempo real
-function connectWebSocket() {
-    // Detectar si estamos en producción (Vercel no soporta WebSockets)
+// Conectar WebSocket o SSE para tiempo real
+function connectRealtime() {
     if (window.location.hostname.includes('vercel.app')) {
-        console.log('🚫 WebSocket deshabilitado en producción (Vercel)');
+        // Usar SSE en producción (Vercel)
+        const eventSource = new EventSource('/admin/events');
+        eventSource.onmessage = (event) => {
+            try {
+                const data = JSON.parse(event.data);
+                if (data.type === 'message-update') {
+                    handleNewMessage(data);
+                }
+            } catch (e) {
+                console.error('Error parseando evento SSE:', e);
+            }
+        };
+        eventSource.onerror = (err) => {
+            console.log('❌ Error en conexión SSE', err);
+        };
+        console.log('🔗 Conectado a SSE');
         return;
     }
-    
+    // WebSocket en desarrollo/local
     socket = io();
-    
     socket.on('connect', () => {
         console.log('🔗 Conectado al WebSocket');
     });
-    
     socket.on('message-update', (data) => {
         console.log('🔄 Nuevo mensaje recibido:', data);
         handleNewMessage(data);
     });
-    
     socket.on('disconnect', () => {
         console.log('🔌 Desconectado del WebSocket');
     });
@@ -679,12 +690,12 @@ function closeModal() {
     hideTypingIndicator();
 }
 
-// Conectar WebSocket y cargar datos al inicio
-connectWebSocket();
+// Conectar tiempo real (WebSocket o SSE) y cargar datos al inicio
+connectRealtime();
 loadData();
 
-// Auto-refresh: más frecuente en producción donde no hay WebSocket
-const refreshInterval = window.location.hostname.includes('vercel.app') ? 10000 : 60000;
+// Auto-refresh: menos frecuente si hay SSE
+const refreshInterval = window.location.hostname.includes('vercel.app') ? 30000 : 60000;
 setInterval(loadData, refreshInterval);
 
 console.log(`🔄 Auto-refresh configurado cada ${refreshInterval/1000} segundos`);
