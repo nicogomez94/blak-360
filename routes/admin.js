@@ -11,6 +11,17 @@ const messageService = require('../services/messaging');
 // --- SSE: Clientes conectados ---
 let sseClients = [];
 
+// Función para emitir eventos SSE (exportada para uso desde otros módulos)
+function emitSSEEvent(eventType, data) {
+  const sseData = {
+    type: eventType,
+    data: data
+  };
+  sseClients.forEach(res => {
+    res.write(`data: ${JSON.stringify(sseData)}\n\n`);
+  });
+}
+
 // Endpoint SSE para eventos en tiempo real
 router.get('/events', (req, res) => {
   res.set({
@@ -143,8 +154,7 @@ router.post('/api/send/:phoneNumber', async (req, res) => {
     await messageService.sendMessage(phoneNumber, message);
 
     // Notificar a todos los clientes SSE
-    const sseData = {
-      type: 'message-update',
+    emitSSEEvent('message-update', {
       phoneNumber,
       contactName,
       message: {
@@ -152,9 +162,6 @@ router.post('/api/send/:phoneNumber', async (req, res) => {
         text: message,
         timestamp: new Date().toISOString()
       }
-    };
-    sseClients.forEach(res => {
-      res.write(`data: ${JSON.stringify(sseData)}\n\n`);
     });
 
     console.log(`👨‍💼 Admin envió mensaje a ${phoneNumber}: "${message}"`);
@@ -348,4 +355,6 @@ router.get('/search', async (req, res) => {
   }
 });
 
+// Exportar tanto el router como la función de emisión SSE
 module.exports = router;
+module.exports.emitSSEEvent = emitSSEEvent;

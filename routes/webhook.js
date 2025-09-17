@@ -7,6 +7,7 @@ const router = express.Router();
 const openaiService = require('../services/openai');
 const messageService = require('../services/messaging');
 const conversationService = require('../services/conversation');
+const { emitSSEEvent } = require('./admin');
 
 /**
  * Webhook principal para recibir mensajes de WhatsApp
@@ -163,6 +164,17 @@ router.post('/whatsapp', async (req, res) => {
     // Registrar mensaje del usuario
     await conversationService.addMessage(fromNumber, messageText.trim(), 'user', contactName);
     
+    // Emitir evento SSE para el dashboard - mensaje de usuario
+    emitSSEEvent('message-update', {
+      phoneNumber: fromNumber,
+      contactName,
+      message: {
+        sender: 'user',
+        text: messageText.trim(),
+        timestamp: new Date().toISOString()
+      }
+    });
+    
     // Verificar si la conversación está en modo manual
     const isManual = await conversationService.isManualMode(fromNumber);
     
@@ -206,6 +218,17 @@ router.post('/whatsapp', async (req, res) => {
     
     // Registrar respuesta de la IA
     await conversationService.addMessage(fromNumber, aiResponse, 'ai', contactName);
+    
+    // Emitir evento SSE para el dashboard - respuesta de IA
+    emitSSEEvent('message-update', {
+      phoneNumber: fromNumber,
+      contactName,
+      message: {
+        sender: 'ai',
+        text: aiResponse,
+        timestamp: new Date().toISOString()
+      }
+    });
     
     // ===== LOG: Resultado del envío =====
     console.log('\n✅ ===== RESULTADO DEL ENVÍO =====');
