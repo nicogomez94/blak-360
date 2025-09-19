@@ -3,12 +3,8 @@
  * Integra OpenAI, Express y PostgreSQL
  */
 
-// Cargar variables de entorno
-if (process.env.NODE_ENV === 'development') {
-  require('dotenv').config({ path: '.env.development' });
-} else {
-  require('dotenv').config();
-}
+// Cargar variables de entorno (siempre .env.development)
+require('dotenv').config({ path: '.env.development' });
 const express = require('express');
 const bodyParser = require('body-parser');
 const http = require('http');
@@ -168,7 +164,7 @@ app.get('/health', async (req, res) => {
       environment: {
         NODE_ENV: process.env.NODE_ENV || 'development',
         openai_configured: !!process.env.OPENAI_API_KEY,
-        messaging_configured: !!process.env.D360_API_KEY,
+        messaging_configured: !!process.env.DIALOG360_API_KEY,
         database_configured: db.isDatabaseConfigured
       },
       stats
@@ -251,12 +247,12 @@ async function startServer() {
       // Verificar configuración
       const config = [];
       if (process.env.OPENAI_API_KEY) config.push('✅ OpenAI');
-      if (process.env.D360_API_KEY) config.push('✅ Messaging API');
+      if (process.env.DIALOG360_API_KEY) config.push('✅ Messaging API');
       if (db.isDatabaseConfigured) config.push('✅ PostgreSQL');
       
       console.log('📋 Configuración:', config.length > 0 ? config.join(', ') : 'Básica');
       
-      if (!process.env.D360_API_KEY) {
+      if (!process.env.DIALOG360_API_KEY) {
         console.warn('⚠️ D360_API_KEY no configurada');
       }
       if (!db.isDatabaseConfigured) {

@@ -6,7 +6,7 @@
 const axios = require('axios');
 
 // Configuración de 360dialog
-const D360_API_KEY = process.env.DIALOG360_API_KEY || process.env.D360_API_KEY;
+const D360_API_KEY = process.env.DIALOG360_API_KEY;
 const D360_API_URL = process.env.NODE_ENV === 'development' ? 'https://waba-sandbox.360dialog.io' : (process.env.D360_API_URL || 'https://waba-v2.360dialog.io');
 
 // Detectar entorno
