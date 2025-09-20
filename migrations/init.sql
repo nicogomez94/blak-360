@@ -7,6 +7,10 @@ CREATE TABLE IF NOT EXISTS conversations (
     phone_number VARCHAR(20) NOT NULL UNIQUE,
     contact_name VARCHAR(100),
     is_manual_mode BOOLEAN DEFAULT FALSE,
+    manual_mode_started TIMESTAMP,
+    manual_mode_ended TIMESTAMP,
+    message_count INTEGER DEFAULT 0,
+    last_activity TIMESTAMP DEFAULT NOW(),
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
@@ -24,6 +28,7 @@ CREATE TABLE IF NOT EXISTS messages (
 
 -- Crear índices para mejorar performance
 CREATE INDEX IF NOT EXISTS idx_conversations_phone ON conversations(phone_number);
+CREATE INDEX IF NOT EXISTS idx_conversations_last_activity ON conversations(last_activity);
 CREATE INDEX IF NOT EXISTS idx_messages_phone ON messages(phone_number);
 CREATE INDEX IF NOT EXISTS idx_messages_timestamp ON messages(timestamp);
 CREATE INDEX IF NOT EXISTS idx_messages_sender ON messages(sender);

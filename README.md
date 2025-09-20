@@ -130,6 +130,13 @@ curl -X GET "https://waba-v2.360dialog.io/v1/configs/webhook" \
 
 !!!!!!!!!!!!!!!!!!!!!!!!
 PARA SANDBOX ES https://waba-sandbox.360dialog.io/v1/configs/webhook
+--->
+curl -X POST "https://waba-sandbox.360dialog.io/v1/configs/webhook" \
+  -H "D360-API-KEY: XXXXXXXXXXXXXXXXXXXXX" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "url": "https://XXXXXXXXXXX.ngrok-free.app/webhook/whatsapp"
+  }'
 !!!!!!!!!!!!!!!!!!!!!!!!
 
 ****************************
