@@ -29,6 +29,5 @@ async function testConnection() {
 }
 
 module.exports = {
-  initializeDatabase,
   testConnection
 };

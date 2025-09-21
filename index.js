@@ -17,7 +17,7 @@ const conversationService = require('./services/conversation');
 
 // Importar base de datos
 const db = require('./config/database');
-const { initializeDatabase, testConnection } = require('./config/database-init');
+const { testConnection } = require('./config/database-init');
 
 const app = express();
 const server = http.createServer(app);
@@ -219,11 +219,7 @@ async function startServer() {
       
       if (connected) {
         console.log('✅ Conexión a PostgreSQL establecida exitosamente');
-        
-        // Inicializar base de datos con migración automática
-        await initializeDatabase();
-        console.log('✅ Tablas de base de datos inicializadas correctamente');
-        console.log('✅ Esquema de base de datos inicializado');
+        console.log('✅ Base de datos conectada y lista para usar');
       } else {
         console.warn('⚠️ No se pudo conectar a PostgreSQL');
         console.warn('🔄 Continuando con almacenamiento en memoria...');
