@@ -67,10 +67,10 @@ app.use((req, res, next) => {
   console.log(`📋 User-Agent: ${req.get('User-Agent')}`);
   console.log(`🏠 Host: ${req.get('Host')}`);
   
-  console.log('\n📋 HEADERS COMPLETOS:');
-  Object.keys(req.headers).forEach(key => {
-    console.log(`  ${key}: ${req.headers[key]}`);
-  });
+  // console.log('\n📋 HEADERS COMPLETOS:');
+  // Object.keys(req.headers).forEach(key => {
+  //   console.log(`  ${key}: ${req.headers[key]}`);
+  // });
   
   if (req.method === 'POST') {
     console.log('\n📦 BODY COMPLETO:');
@@ -237,10 +237,6 @@ async function startServer() {
       console.log('\n🚀 ==========================================');
       console.log(`🤖 Chatbot de WhatsApp iniciado`);
       console.log(`🌐 Servidor corriendo en puerto ${PORT}`);
-      console.log(`📡 Webhook WhatsApp: http://localhost:${PORT}/webhook/whatsapp`);
-      console.log(`📡 Webhook Estándar: http://localhost:${PORT}/`);
-      console.log(`📊 Dashboard Admin: http://localhost:${PORT}/admin/dashboard`);
-      console.log(`🏥 Health check: http://localhost:${PORT}/health`);
       console.log(`🔄 WebSocket: Activado para tiempo real`);
       console.log('🚀 ==========================================\n');
 

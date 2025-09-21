@@ -193,7 +193,7 @@ async function getResponse(message, userId = 'anonymous') {
     ];
 
     console.log(`📤 Enviando ${messages.length} mensajes a OpenAI...`);
-    console.log('💭 Contexto completo:', JSON.stringify(messages, null, 2));
+    // console.log('💭 Contexto completo:', JSON.stringify(messages, null, 2));
 
     // Llamada a la API de OpenAI
     const response = await openai.chat.completions.create({
@@ -203,8 +203,8 @@ async function getResponse(message, userId = 'anonymous') {
       temperature: CHATBOT_CONFIG.temperature,
     });
 
-    console.log('📨 Respuesta cruda de OpenAI:');
-    console.log(JSON.stringify(response, null, 2));
+    // console.log('📨 Respuesta cruda de OpenAI:');
+    // console.log(JSON.stringify(response, null, 2));
 
     // Extraer la respuesta
     const aiMessage = response.choices[0]?.message?.content;

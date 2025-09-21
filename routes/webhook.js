@@ -20,12 +20,12 @@ router.post('/whatsapp', async (req, res) => {
     console.log('📍 URL:', req.url);
     
     // LOG COMPLETO del body para debugging
-    console.log('\n📦 ANÁLISIS COMPLETO DEL BODY:');
-    console.log('- Tipo:', typeof req.body);
-    console.log('- Es array?:', Array.isArray(req.body));
-    console.log('- Keys:', Object.keys(req.body || {}));
-    console.log('- Body completo:');
-    console.log(JSON.stringify(req.body, null, 2));
+    // console.log('\n📦 ANÁLISIS COMPLETO DEL BODY:');
+    // console.log('- Tipo:', typeof req.body);
+    // console.log('- Es array?:', Array.isArray(req.body));
+    // console.log('- Keys:', Object.keys(req.body || {}));
+    // console.log('- Body completo:');
+    // console.log(JSON.stringify(req.body, null, 2));
     
   // Responder inmediatamente para confirmar recepción (ACK) y continuar procesando de forma asíncrona
   // Importante: NO volver a usar "res" en este handler después de este punto
