@@ -71,7 +71,7 @@ async function sendMessage(to, message) {
     console.log('💬 Mensaje:', `"${message}"`);
     console.log('📦 Payload:', JSON.stringify(payload, null, 2));
 
-    const apiUrl = `${D360_API_URL}/v1/messages`;
+    const apiUrl = `${D360_API_URL}/messages`;
     console.log('🌐 URL completa:', apiUrl);
     
     const response = await axios.post(apiUrl, payload, {
