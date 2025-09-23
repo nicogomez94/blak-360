@@ -24,7 +24,8 @@ async function testConnection() {
     console.error('❌ Error conectando a PostgreSQL:', error.message);
     return false;
   } finally {
-    await pool.end();
+    // NO cerrar el pool aquí - se usa en toda la app
+    // await pool.end();
   }
 }
 
