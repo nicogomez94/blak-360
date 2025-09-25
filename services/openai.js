@@ -31,9 +31,9 @@ if (process.env.OPENAI_API_KEY) {
  * Configuración del chatbot - Optimizada para costos
  */
 const CHATBOT_CONFIG = {
-  model: 'gpt-3.5-turbo',
-  maxTokens: 80, // Extremadamente corto para evitar muletillas
-  temperature: 0.1,// Mínima creatividad, máxima consistencia
+  model: 'gpt-4o',
+  maxTokens: 200, // Extremadamente corto para evitar muletillas
+  temperature: 0.2,// Mínima creatividad, máxima consistencia
   systemPrompt: `
 Sos el asistente virtual de BLAK PLOTEO, un local de detailing de autos. Objetivo: responder corto, natural y cerrar ventas/agendas.
 ** Estilo

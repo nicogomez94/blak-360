@@ -72,7 +72,53 @@ npx ngrok http 3000
 # Ejemplo: https://abc123.ngrok.io/webhook/whatsapp
 ```
 
-## 🔑 Configuración de OpenAI
+## �️ Configuración de Base de Datos
+
+El proyecto usa PostgreSQL para persistir conversaciones y mensajes. Puedes usar una base local o en la nube.
+
+### Inicialización de la Base de Datos
+
+Una vez que tengas tu base de datos PostgreSQL configurada, ejecuta el script de migración inicial:
+
+```bash
+# Configurar la variable DATABASE_URL en tu entorno
+export DATABASE_URL="postgresql://usuario:password@host:puerto/nombre_db"
+
+# Ejecutar el script de inicialización
+psql $DATABASE_URL -f migrations/init.sql
+```
+
+### Para bases de datos en Render o servicios similares:
+
+```bash
+# Ejemplo con credenciales específicas
+PGPASSWORD='tu_password' psql -h tu-host.render.com -U tu_usuario -d tu_database -f migrations/init.sql
+```
+
+### Reset completo de la base (si necesitas empezar desde cero):
+
+```bash
+# 1. Conectarse a la base
+PGPASSWORD='tu_password' psql -h tu-host.render.com -U tu_usuario -d tu_database
+
+# 2. Dentro de psql, ejecutar:
+DROP SCHEMA public CASCADE;
+CREATE SCHEMA public;
+GRANT ALL ON SCHEMA public TO tu_usuario;
+GRANT ALL ON SCHEMA public TO public;
+
+# 3. Salir y ejecutar el script
+\q
+PGPASSWORD='tu_password' psql -h tu-host.render.com -U tu_usuario -d tu_database -f migrations/init.sql
+```
+
+### Estructura de tablas creadas:
+
+- **`conversations`**: Almacena información de cada conversación (número, modo manual/automático, etc.)
+- **`messages`**: Historial completo de mensajes (usuario, AI, admin)
+- **`update_updated_at_column()`**: Función para actualizar timestamps automáticamente
+
+## �🔑 Configuración de OpenAI
 
 1. Ve a [OpenAI Platform](https://platform.openai.com/)
 2. Crea una cuenta y obtén una API key
@@ -245,3 +291,13 @@ Para reportar bugs o solicitar características:
 **¡Tu chatbot de WhatsApp está listo! 🎉**
 
 Envía un mensaje a tu número de WhatsApp Business y disfruta conversando con tu AI assistant.
+
+## 🤖 Modo Manual y PPF (Pasaje Por Falla)
+
+El chatbot soporta un modo "manual" para la gestión de conversaciones. Cuando ocurre un evento de PPF (Pasaje Por Falla), la conversación pasa automáticamente de modo automático a modo manual, permitiendo que un operador humano continúe la atención.
+
+- Cuando se detecta un PPF, el sistema marca la conversación como `is_manual_mode = true` y asigna el operador correspondiente.
+- El usuario final sigue conversando, pero los mensajes son gestionados por un humano hasta que se cierre el modo manual.
+- Al finalizar la intervención manual, la conversación vuelve automáticamente a modo automático.
+
+Puedes personalizar la lógica de PPF y el pasaje entre modos en el archivo `services/conversation.js`.
