@@ -164,7 +164,7 @@ app.get('/health', async (req, res) => {
       environment: {
         NODE_ENV: process.env.NODE_ENV || 'development',
         openai_configured: !!process.env.OPENAI_API_KEY,
-        messaging_configured: !!process.env.DIALOG360_API_KEY,
+        messaging_configured: !!(process.env.META_ACCESS_TOKEN && process.env.PHONE_NUMBER_ID),
         database_configured: db.isDatabaseConfigured
       },
       stats
@@ -239,13 +239,13 @@ async function startServer() {
       // Verificar configuración
       const config = [];
       if (process.env.OPENAI_API_KEY) config.push('✅ OpenAI');
-      if (process.env.DIALOG360_API_KEY) config.push('✅ Messaging API');
+      if (process.env.META_ACCESS_TOKEN && process.env.PHONE_NUMBER_ID) config.push('✅ Messaging API (Cloud API)');
       if (db.isDatabaseConfigured) config.push('✅ PostgreSQL');
       
       console.log('📋 Configuración:', config.length > 0 ? config.join(', ') : 'Básica');
       
-      if (!process.env.DIALOG360_API_KEY) {
-        console.warn('⚠️ D360_API_KEY no configurada');
+      if (!process.env.META_ACCESS_TOKEN || !process.env.PHONE_NUMBER_ID) {
+        console.warn('⚠️ META_ACCESS_TOKEN y PHONE_NUMBER_ID no configurados (Cloud API)');
       }
       if (!db.isDatabaseConfigured) {
         console.warn('⚠️ DATABASE_URL no configurada (usando memoria)');

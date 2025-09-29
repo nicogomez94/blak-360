@@ -9,6 +9,33 @@ const messageService = require('../services/messaging');
 const conversationService = require('../services/conversation');
 
 /**
+ * Verificación de webhook para Cloud API de Meta
+ * GET /webhook/whatsapp?hub.mode=subscribe&hub.challenge=CHALLENGE_SENT_BY_FACEBOOK&hub.verify_token=YOUR_VERIFY_TOKEN
+ */
+router.get('/whatsapp', (req, res) => {
+  const mode = req.query['hub.mode'];
+  const token = req.query['hub.verify_token'];
+  const challenge = req.query['hub.challenge'];
+
+  // Verificar que los parámetros están presentes
+  if (mode && token) {
+    // Verificar el token (debe coincidir con el configurado en tu app de Facebook)
+    const VERIFY_TOKEN = process.env.WEBHOOK_VERIFY_TOKEN || 'blak_webhook_token';
+    
+    if (mode === 'subscribe' && token === VERIFY_TOKEN) {
+      console.log('✅ Webhook verificado exitosamente');
+      res.status(200).send(challenge);
+    } else {
+      console.error('❌ Token de verificación incorrecto');
+      res.sendStatus(403);
+    }
+  } else {
+    console.error('❌ Parámetros de verificación faltantes');
+    res.sendStatus(400);
+  }
+});
+
+/**
  * Webhook principal para recibir mensajes de WhatsApp
  * El proveedor enviará un POST a esta ruta cuando llegue un mensaje
  */

@@ -38,9 +38,10 @@ Editar `.env` con tus credenciales:
 # OpenAI
 OPENAI_API_KEY=sk-tu-api-key-de-openai
 
-# Messaging API (ejemplo con 360dialog)
-D360_API_KEY=tu_api_key_aqui
-D360_API_URL=https://waba-v2.360dialog.io
+# WhatsApp Cloud API (Meta)
+META_ACCESS_TOKEN=tu_token_de_acceso_aqui
+PHONE_NUMBER_ID=tu_phone_number_id_aqui
+WEBHOOK_VERIFY_TOKEN=blak_webhook_token
 
 # Servidor
 PORT=3000
@@ -48,12 +49,14 @@ NODE_ENV=development
 DEBUG=true
 ```
 
-## 🔧 Configuración del Proveedor de WhatsApp
+## 🔧 Configuración de WhatsApp Cloud API
 
-### 1. Configurar tu proveedor (ejemplo: 360dialog)
-1. Obtén una cuenta con un proveedor de WhatsApp Business API
-2. Configura tu número de WhatsApp Business
-3. Obtén tu API key y URL del endpoint
+### 1. Configurar WhatsApp Cloud API (Meta)
+1. Ve a [Facebook Developers](https://developers.facebook.com/)
+2. Crea una nueva aplicación de WhatsApp Business
+3. Configura tu número de WhatsApp Business
+4. Obtén tu `PHONE_NUMBER_ID` y `META_ACCESS_TOKEN`
+5. Configura el webhook con tu `WEBHOOK_VERIFY_TOKEN`
 
 ### 2. Configurar Webhook
 1. En la configuración de tu proveedor, establece:

@@ -1,46 +1,47 @@
 /**
- * Servicio para interactuar con la API de 360dialog
+ * Servicio para interactuar con WhatsApp Cloud API de Meta
  * Maneja el envío de mensajes de WhatsApp
  */
 
 const axios = require('axios');
 
-// Configuración de 360dialog
-const D360_API_KEY = process.env.DIALOG360_API_KEY;
-const D360_API_URL = process.env.NODE_ENV === 'development' ? 'https://waba-sandbox.360dialog.io' : (process.env.D360_API_URL || 'https://waba-v2.360dialog.io');
+// Configuración de WhatsApp Cloud API
+const META_ACCESS_TOKEN = process.env.META_ACCESS_TOKEN;
+const PHONE_NUMBER_ID = process.env.PHONE_NUMBER_ID;
+const META_API_URL = 'https://graph.facebook.com/v18.0';
 
 // Detectar entorno
 const isDevelopment = process.env.NODE_ENV === 'development' || process.env.SANDBOX_MODE === 'true';
 const SANDBOX_PHONE = process.env.SANDBOX_PHONE_NUMBER;
 
 // Verificar configuración
-if (D360_API_KEY) {
-  console.log(`✅ API Key de 360dialog configurada (Entorno: ${isDevelopment ? 'DESARROLLO' : 'PRODUCCIÓN'})`);
+if (META_ACCESS_TOKEN && PHONE_NUMBER_ID) {
+  console.log(`✅ WhatsApp Cloud API configurada (Entorno: ${isDevelopment ? 'DESARROLLO' : 'PRODUCCIÓN'})`);
   if (isDevelopment && SANDBOX_PHONE) {
     console.log(`🧪 Sandbox activo - Número de prueba: ${SANDBOX_PHONE}`);
   }
 } else {
-  console.warn('⚠️  D360_API_KEY no configurada. Agrega tu API Key de 360dialog en el archivo .env');
+  console.warn('⚠️  META_ACCESS_TOKEN o PHONE_NUMBER_ID no configurados. Configura las variables de entorno para Cloud API');
 }
 
 /**
- * Enviar mensaje de WhatsApp usando 360dialog
+ * Enviar mensaje de WhatsApp usando Cloud API de Meta
  * @param {string} to - Número de destino (formato: whatsapp:+5491137947206)
  * @param {string} message - Mensaje a enviar
  * @returns {Promise<object>} - Resultado del envío
  */
 async function sendMessage(to, message) {
   try {
-    console.log('📤 Enviando mensaje via 360dialog...');
+    console.log('📤 Enviando mensaje via WhatsApp Cloud API...');
 
     if (!to || !message) {
       throw new Error('Faltan parámetros: to y message son requeridos');
     }
-    if (!D360_API_KEY) {
-      throw new Error('D360_API_KEY no configurada');
+    if (!META_ACCESS_TOKEN || !PHONE_NUMBER_ID) {
+      throw new Error('META_ACCESS_TOKEN o PHONE_NUMBER_ID no configurados');
     }
 
-    // Formatear número: usar formato internacional sin + (estándar 360dialog)
+    // Formatear número: usar formato internacional sin + (estándar Cloud API)
     let phoneNumber = to.replace('whatsapp:', '').replace('+', '');
     
     // Asegurar formato internacional completo para Argentina
@@ -58,7 +59,7 @@ async function sendMessage(to, message) {
       message = message.substring(0, 4093) + '...';
     }
 
-    // Payload para 360dialog API
+    // Payload para Cloud API
     const payload = {
       messaging_product: "whatsapp",
       to: phoneNumber,
@@ -71,13 +72,13 @@ async function sendMessage(to, message) {
     console.log('💬 Mensaje:', `"${message}"`);
     console.log('📦 Payload:', JSON.stringify(payload, null, 2));
 
-    const apiUrl = `${D360_API_URL}/messages`;
+    const apiUrl = `${META_API_URL}/${PHONE_NUMBER_ID}/messages`;
     console.log('🌐 URL completa:', apiUrl);
     
     const response = await axios.post(apiUrl, payload, {
       headers: {
         'Content-Type': 'application/json',
-        'D360-API-KEY': D360_API_KEY,
+        'Authorization': `Bearer ${META_ACCESS_TOKEN}`,
         'Accept': 'application/json'
       },
       timeout: 15000, // 15 segundos de timeout
