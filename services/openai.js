@@ -31,7 +31,7 @@ if (process.env.OPENAI_API_KEY) {
  * Configuración del chatbot - Optimizada para costos
  */
 const CHATBOT_CONFIG = {
-  model: 'gpt-4o',
+  model: 'gpt-3.5-turbo',
   maxTokens: 200, // Extremadamente corto para evitar muletillas
   temperature: 0.2,// Mínima creatividad, máxima consistencia
   systemPrompt: `
