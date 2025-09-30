@@ -43,14 +43,12 @@ async function sendMessage(to, message) {
 
     // Formatear número: usar formato internacional sin + (estándar Cloud API)
     let phoneNumber = to.replace('whatsapp:', '').replace('+', '');
-    
-    // Asegurar formato internacional completo para Argentina
-    if (!phoneNumber.startsWith('54')) {
-      if (phoneNumber.startsWith('9')) {
-        phoneNumber = '54' + phoneNumber; // 549XXXXXXXXX
-      }
+
+    // Corregir formato para Argentina: eliminar el 9 después del 54 si existe (Meta espera 5411...)
+    if (phoneNumber.startsWith('549') && phoneNumber.length > 11) {
+      phoneNumber = '54' + phoneNumber.slice(3);
     }
-    
+
     console.log(`📱 Enviando a: ${phoneNumber}`);
     console.log(`📱 Formato original: ${to}`);
 
