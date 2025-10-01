@@ -1,3 +1,20 @@
+# 📋 Cómo obtener el PHONE_NUMBER_ID
+
+Para obtener el `PHONE_NUMBER_ID` correcto para tu número de WhatsApp Business, ejecuta el siguiente comando en tu terminal (reemplaza el WABA ID y el token por los tuyos):
+
+```bash
+curl -G "https://graph.facebook.com/v21.0/<WABA_ID>/phone_numbers" \
+  -H "Authorization: Bearer <TOKEN>"
+```
+
+Ejemplo real:
+
+```bash
+curl -G "https://graph.facebook.com/v21.0/717522090907631/phone_numbers" \
+  -H "Authorization: Bearer EAALHLLgbqscBPglTWMz3VU7aXIcouMLxWuKJP8X7o6xIpEl4UYUZC5ZBTtCa6XFLefIN205b61xA2JXwSaV7Jya2ZAaZA2aM7h7zKtET5KwoMmbXTEDBaTI6iF9ZBovG6cmEZAFP66jLfAPoRZBZCjISw7ONIVEZAsMyMDhQxR765upFCNY9Xs1arZCVuNdNvtiTkLbYDq4h9VCnoCmtQnsslZCffZAhmoUO5RBU85tr8evD7AZDZD"
+```
+
+El resultado te mostrará el `id` de cada número de teléfono asociado a esa cuenta de WhatsApp Business. Usa ese valor en tu `.env` como `PHONE_NUMBER_ID`.
 # WhatsApp Chatbot Backend
 
 Backend para chatbot de WhatsApp usando Node.js, Express y OpenAI GPT-3.5-turbo.
@@ -46,7 +63,6 @@ WEBHOOK_VERIFY_TOKEN=blak_webhook_token
 # Servidor
 PORT=3000
 NODE_ENV=development
-DEBUG=true
 ```
 
 ## 🔧 Configuración de WhatsApp Cloud API
@@ -248,7 +264,6 @@ El sistema incluye logging detallado:
 
 ### Variables de debug
 ```env
-DEBUG=true        # Mostrar headers y body de requests
 NODE_ENV=development  # Mostrar errores detallados
 ```
 
