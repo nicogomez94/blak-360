@@ -1,3 +1,20 @@
+# 📋 Cómo suscribir y validar la app en WhatsApp Business API
+
+Para que tu app pueda enviar y recibir mensajes, debes suscribirla a la cuenta de WhatsApp Business y luego validar la suscripción.
+
+**Suscribir la app:**
+```bash
+curl -X POST "https://graph.facebook.com/v21.0/717522090907631/subscribed_apps" \
+  -H "Authorization: Bearer <TU_TOKEN>"
+```
+
+**Validar la suscripción:**
+```bash
+curl -G "https://graph.facebook.com/v21.0/717522090907631/subscribed_apps" \
+  -H "Authorization: Bearer <TU_TOKEN>"
+```
+
+Esto asegura que tu app está correctamente vinculada y autorizada para operar con la cuenta de WhatsApp Business.
 # 📋 Cómo obtener el PHONE_NUMBER_ID
 
 Para obtener el `PHONE_NUMBER_ID` correcto para tu número de WhatsApp Business, ejecuta el siguiente comando en tu terminal (reemplaza el WABA ID y el token por los tuyos):
@@ -11,7 +28,7 @@ Ejemplo real:
 
 ```bash
 curl -G "https://graph.facebook.com/v21.0/717522090907631/phone_numbers" \
-  -H "Authorization: Bearer EAALHLLgbqscBPglTWMz3VU7aXIcouMLxWuKJP8X7o6xIpEl4UYUZC5ZBTtCa6XFLefIN205b61xA2JXwSaV7Jya2ZAaZA2aM7h7zKtET5KwoMmbXTEDBaTI6iF9ZBovG6cmEZAFP66jLfAPoRZBZCjISw7ONIVEZAsMyMDhQxR765upFCNY9Xs1arZCVuNdNvtiTkLbYDq4h9VCnoCmtQnsslZCffZAhmoUO5RBU85tr8evD7AZDZD"
+  -H "Authorization: Bearer <TU_TOKEN>"
 ```
 
 El resultado te mostrará el `id` de cada número de teléfono asociado a esa cuenta de WhatsApp Business. Usa ese valor en tu `.env` como `PHONE_NUMBER_ID`.
