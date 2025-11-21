@@ -87,11 +87,11 @@ function showNotification(message) {
         position: fixed;
         top: 20px;
         right: 20px;
-        background: linear-gradient(135deg, #00ff41, #00b82d);
+        background: linear-gradient(135deg, #6200ea, #00b82d);
         color: #000;
         padding: 1.2rem 2rem;
         border-radius: 12px;
-        border: 2px solid #00ff41;
+        border: 2px solid #6200ea;
         box-shadow: 0 8px 32px rgba(0,255,65,0.4);
         z-index: 10000;
         animation: slideIn 0.4s ease;
