@@ -45,9 +45,9 @@ async function sendMessage(to, message) {
     let phoneNumber = to.replace('whatsapp:', '').replace('+', '');
 
     // Corregir formato para Argentina: eliminar el 9 después del 54 si existe (Meta espera 5411...)
-    if (phoneNumber.startsWith('549') && phoneNumber.length > 11) {
-      phoneNumber = '54' + phoneNumber.slice(3);
-    }
+    // if (phoneNumber.startsWith('549') && phoneNumber.length > 11) {
+    //   phoneNumber = '54' + phoneNumber.slice(3);
+    // }
 
     console.log(`📱 Enviando a: ${phoneNumber}`);
     console.log(`📱 Formato original: ${to}`);
