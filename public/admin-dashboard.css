@@ -15,7 +15,7 @@ body {
     background: linear-gradient(135deg, #6200ea, #00b82d);
     color: #000000;
     padding: 3rem 2rem;
-    box-shadow: 0 8px 32px rgba(0,255,65,0.3);
+    box-shadow: 0 8px 32px #6200ea;
     text-align: center;
     position: relative;
     overflow: hidden;
@@ -33,6 +33,7 @@ body {
 }
 
 .header h1 {
+    color: #fff;
     position: relative;
     z-index: 2;
     font-size: 3rem;
@@ -44,6 +45,7 @@ body {
 }
 
 .header p {
+    color: #cfcfcf;
     position: relative;
     z-index: 2;
     font-size: 1.2rem;
@@ -115,14 +117,14 @@ body {
 
 .filter-card.active-filter .stat-number,
 .filter-card.active-filter .stat-label {
-    color: #000;
+    color: #fff;
 }
 
 .stat-number { 
     font-size: 2.5rem; 
     font-weight: 800; 
     color: #6200ea; 
-    text-shadow: 0 0 10px rgba(0,255,65,0.3);
+    text-shadow: 0 0 10px #6200ea;
 }
 
 .stat-label { 
@@ -153,6 +155,7 @@ body {
 }
 
 .conversations-header h2 {
+    color: white;
     font-size: 1.5rem;
     font-weight: 800;
     text-transform: uppercase;
@@ -338,7 +341,7 @@ body {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    box-shadow: 0 4px 16px rgba(0,255,65,0.3);
+    box-shadow: 0 4px 16px #6200ea;
 }
 
 .chat-header-info {
@@ -413,7 +416,7 @@ body {
     background: linear-gradient(135deg, #6200ea, #00b82d);
     color: #000;
     border-bottom-right-radius: 5px;
-    box-shadow: 0 4px 16px rgba(0,255,65,0.3);
+    box-shadow: 0 4px 16px #6200ea;
 }
 
 /* Burbujas de IA/Admin (izquierda) */
@@ -486,7 +489,7 @@ body {
 
 .message-input:focus {
     border-color: #6200ea;
-    box-shadow: 0 4px 16px rgba(0,255,65,0.3);
+    box-shadow: 0 4px 16px #6200ea;
 }
 
 .message-input::placeholder {
@@ -507,7 +510,7 @@ body {
     font-size: 1.4rem;
     font-weight: bold;
     transition: all 0.3s ease;
-    box-shadow: 0 4px 16px rgba(0,255,65,0.3);
+    box-shadow: 0 4px 16px #6200ea;
 }
 
 .send-btn:hover {

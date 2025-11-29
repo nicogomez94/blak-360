@@ -15,7 +15,10 @@ curl -G "https://graph.facebook.com/v21.0/717522090907631/subscribed_apps" \
 ```
 
 Esto asegura que tu app está correctamente vinculada y autorizada para operar con la cuenta de WhatsApp Business.
+
 # 📋 Cómo obtener el PHONE_NUMBER_ID
+
+****IR A PANEL IZQUIERDO --> CONFIG DE LA API
 
 Para obtener el `PHONE_NUMBER_ID` correcto para tu número de WhatsApp Business, ejecuta el siguiente comando en tu terminal (reemplaza el WABA ID y el token por los tuyos):
 

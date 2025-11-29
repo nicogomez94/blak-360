@@ -72,7 +72,7 @@ router.get('/', (req, res) => {
             font-size: 2.5rem; 
             font-weight: 800; 
             color: #6200ea; 
-            text-shadow: 0 0 10px rgba(0,255,65,0.3);
+            text-shadow: 0 0 10px #6200ea;
         }
         .stat-label { 
             color: #bbb; 
@@ -257,7 +257,7 @@ router.get('/', (req, res) => {
             display: flex;
             align-items: center;
             justify-content: space-between;
-            box-shadow: 0 4px 16px rgba(0,255,65,0.3);
+            box-shadow: 0 4px 16px #6200ea;
         }
         
         .chat-header-info {
@@ -332,7 +332,7 @@ router.get('/', (req, res) => {
             background: linear-gradient(135deg, #6200ea, #00b82d);
             color: #000;
             border-bottom-right-radius: 5px;
-            box-shadow: 0 4px 16px rgba(0,255,65,0.3);
+            box-shadow: 0 4px 16px #6200ea;
         }
         
         
@@ -406,7 +406,7 @@ router.get('/', (req, res) => {
         
         .message-input:focus {
             border-color: #6200ea;
-            box-shadow: 0 4px 16px rgba(0,255,65,0.3);
+            box-shadow: 0 4px 16px #6200ea;
         }
         
         .message-input::placeholder {
@@ -427,7 +427,7 @@ router.get('/', (req, res) => {
             font-size: 1.4rem;
             font-weight: bold;
             transition: all 0.3s ease;
-            box-shadow: 0 4px 16px rgba(0,255,65,0.3);
+            box-shadow: 0 4px 16px #6200ea;
         }
         
         .send-btn:hover {
