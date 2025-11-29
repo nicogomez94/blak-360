@@ -12,7 +12,7 @@ body {
 }
 
 .header {
-    background: linear-gradient(135deg, #6200ea, #00b82d);
+    background: linear-gradient(135deg, #6200ea, #9c00b8);
     color: #000000;
     padding: 3rem 2rem;
     box-shadow: 0 8px 32px #6200ea;
@@ -85,7 +85,7 @@ body {
     left: 0;
     right: 0;
     height: 3px;
-    background: linear-gradient(90deg, #6200ea, #00b82d);
+    background: linear-gradient(90deg, #6200ea, #9c00b8);
     opacity: 0;
     transition: opacity 0.3s ease;
 }
@@ -105,7 +105,7 @@ body {
 }
 
 .filter-card.active-filter {
-    background: linear-gradient(135deg, #6200ea, #00b82d);
+    background: linear-gradient(135deg, #6200ea, #9c00b8);
     color: #000;
     border-color: #6200ea;
     box-shadow: 0 16px 48px rgba(0,255,65,0.4);
@@ -145,7 +145,7 @@ body {
 }
 
 .conversations-header {
-    background: linear-gradient(135deg, #6200ea, #00b82d);
+    background: linear-gradient(135deg, #6200ea, #9c00b8);
     color: #000;
     padding: 1.5rem 2rem;
     border-bottom: 1px solid #6200ea;
@@ -335,7 +335,7 @@ body {
 
 /* Header del Chat */
 .chat-header {
-    background: linear-gradient(135deg, #6200ea, #00b82d);
+    background: linear-gradient(135deg, #6200ea, #9c00b8);
     color: #000;
     padding: 1.5rem 2rem;
     display: flex;
@@ -413,7 +413,7 @@ body {
 
 /* Burbujas de usuario (derecha) */
 .message-user .message-bubble {
-    background: linear-gradient(135deg, #6200ea, #00b82d);
+    background: linear-gradient(135deg, #6200ea, #9c00b8);
     color: #000;
     border-bottom-right-radius: 5px;
     box-shadow: 0 4px 16px #6200ea;
@@ -501,7 +501,7 @@ body {
     height: 56px;
     border-radius: 50%;
     border: 2px solid #6200ea;
-    background: linear-gradient(135deg, #6200ea, #00b82d);
+    background: linear-gradient(135deg, #6200ea, #9c00b8);
     color: #000;
     cursor: pointer;
     display: flex;
@@ -539,12 +539,12 @@ body {
 }
 
 .messages-container::-webkit-scrollbar-thumb {
-    background: linear-gradient(135deg, #6200ea, #00b82d);
+    background: linear-gradient(135deg, #6200ea, #9c00b8);
     border-radius: 4px;
 }
 
 .messages-container::-webkit-scrollbar-thumb:hover {
-    background: linear-gradient(135deg, #00b82d, #6200ea);
+    background: linear-gradient(135deg, #9c00b8, #6200ea);
 }
 
 /* Animaciones */
