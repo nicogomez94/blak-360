@@ -4,13 +4,13 @@ Para que tu app pueda enviar y recibir mensajes, debes suscribirla a la cuenta d
 
 **Suscribir la app:**
 ```bash
-curl -X POST "https://graph.facebook.com/v21.0/717522090907631/subscribed_apps" \
+curl -X POST "https://graph.facebook.com/v21.0/<WABA_ID>/subscribed_apps" \
   -H "Authorization: Bearer <TU_TOKEN>"
 ```
 
 **Validar la suscripción:**
 ```bash
-curl -G "https://graph.facebook.com/v21.0/717522090907631/subscribed_apps" \
+curl -G "https://graph.facebook.com/v21.0/<WABA_ID>/subscribed_apps" \
   -H "Authorization: Bearer <TU_TOKEN>"
 ```
 
@@ -24,14 +24,14 @@ Para obtener el `PHONE_NUMBER_ID` correcto para tu número de WhatsApp Business,
 
 ```bash
 curl -G "https://graph.facebook.com/v21.0/<WABA_ID>/phone_numbers" \
-  -H "Authorization: Bearer <TOKEN>"
+  -H "Authorization: Bearer <TOKEN>";
 ```
 
 Ejemplo real:
 
 ```bash
 curl -G "https://graph.facebook.com/v21.0/717522090907631/phone_numbers" \
-  -H "Authorization: Bearer <TU_TOKEN>"
+  -H "Authorization: Bearer <TU_TOKEN>";
 ```
 
 El resultado te mostrará el `id` de cada número de teléfono asociado a esa cuenta de WhatsApp Business. Usa ese valor en tu `.env` como `PHONE_NUMBER_ID`.
@@ -197,29 +197,6 @@ curl http://localhost:3000/webhook/status
 - `POST /webhook/test` - Enviar mensaje de prueba
 
 
-****************************
-****************************
-SETEAR WEBHOOK CALLBACK URL
-
-curl -X POST "https://waba-v2.360dialog.io/v1/configs/webhook" \
-  -H "D360-API-KEY: XXXXXXXXXXXXXXXXXXXXX" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "url": "https://XXXXXXXXXXX.ngrok-free.app/webhook/whatsapp"
-  }'
-
-CHECK
-
-curl -X GET "https://waba-v2.360dialog.io/v1/configs/webhook" \
-  -H "D360-API-KEY: XXXXXXXXXXXXXXXXXX"
-
-!!!!!!!!!!!!!!!!!!!!!!!!
-PARA SANDBOX ES https://waba-sandbox.360dialog.io/v1/configs/webhook
-!!!!!!!!!!!!!!!!!!!!!!!!
-
-****************************
-********************************************************
-****************************
 
 
 ## 📁 Estructura del Proyecto

@@ -18,7 +18,9 @@ let pool = null;
 if (isDatabaseConfigured) {
   const config = process.env.DATABASE_URL ? {
     connectionString: process.env.DATABASE_URL,
-    ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false
+    ssl: {
+      rejectUnauthorized: false
+    }
   } : {
     user: process.env.DB_USER || 'postgres',
     host: process.env.DB_HOST || 'localhost',
@@ -31,7 +33,7 @@ if (isDatabaseConfigured) {
     ...config,
     max: 20,
     idleTimeoutMillis: 30000,
-    connectionTimeoutMillis: 2000,
+    connectionTimeoutMillis: 10000,
   });
 
   // Evento para manejar errores de conexión
