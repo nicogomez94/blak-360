@@ -631,7 +631,7 @@ body {
 
 /* Efectos adicionales Blak */
 .stat-card:hover .stat-number {
-    text-shadow: 0 0 20px rgba(0,255,65,0.8);
+    text-shadow: 0 0 20px #6200ea;
     transform: scale(1.1);
 }
 
@@ -643,10 +643,10 @@ body {
 /* Pulsación de neón */
 @keyframes neonPulse {
     0%, 100% { 
-        box-shadow: 0 0 20px rgba(0,255,65,0.5);
+        box-shadow: 0 0 20px rgb(98, 0, 234);
     }
     50% { 
-        box-shadow: 0 0 40px rgba(0,255,65,0.8);
+        box-shadow: 0 0 40px rgb(125, 41, 243);
     }
 }
 
