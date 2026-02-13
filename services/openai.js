@@ -14,6 +14,7 @@ Inicio SIEMPRE (solo primera vez)
 
 const OpenAI = require('openai');
 const conversationService = require('./conversation');
+const db = require('../config/database');
 
 // Configurar cliente de OpenAI
 let openai;
@@ -218,6 +219,22 @@ async function getResponse(message, userId = 'anonymous') {
     console.log(`📏 Longitud de respuesta: ${aiMessage.length} caracteres`);
     console.log(`💰 Tokens usados: ${response.usage?.total_tokens || 'No disponible'}`);
 
+    // Registrar costos en la base de datos
+    if (response.usage) {
+      try {
+        await trackOpenAICost({
+          phoneNumber,
+          model: CHATBOT_CONFIG.model,
+          inputTokens: response.usage.prompt_tokens,
+          outputTokens: response.usage.completion_tokens,
+        });
+        console.log('💵 Costos registrados exitosamente');
+      } catch (costError) {
+        console.error('❌ Error registrando costos:', costError.message);
+        // No lanzar error, continuar con la respuesta
+      }
+    }
+
     console.log(`📚 Historial actualizado: ${conversationHistory.length + 1} mensajes`);
     console.log('🧠 === FIN PROCESAMIENTO OPENAI ===\n');
 
@@ -246,6 +263,46 @@ async function getResponse(message, userId = 'anonymous') {
 
     // Error genérico
     throw new Error(`Error de OpenAI: ${error.message}`);
+  }
+}
+
+/**
+ * Registrar costos de una llamada a OpenAI
+ * @param {object} params - Parámetros de costo
+ * @param {string} params.phoneNumber - Número de teléfono
+ * @param {string} params.model - Modelo usado
+ * @param {number} params.inputTokens - Tokens de entrada
+ * @param {number} params.outputTokens - Tokens de salida
+ * @param {number} params.messageId - ID del mensaje (opcional)
+ */
+async function trackOpenAICost({ phoneNumber, model, inputTokens, outputTokens, messageId = null }) {
+  try {
+    // Obtener precios de la configuración
+    const pricesResult = await db.query(
+      `SELECT metric, price_per_unit FROM pricing_config WHERE service = 'openai_gpt35'`
+    );
+    
+    const prices = {};
+    pricesResult.rows.forEach(row => {
+      prices[row.metric] = parseFloat(row.price_per_unit);
+    });
+
+    // Calcular costos (precios son por 1000 tokens)
+    const inputCost = (inputTokens / 1000) * (prices.input_token_1k || 0.0005);
+    const outputCost = (outputTokens / 1000) * (prices.output_token_1k || 0.0015);
+
+    // Insertar en la base de datos
+    await db.query(
+      `INSERT INTO openai_costs 
+       (phone_number, message_id, model, input_tokens, output_tokens, input_cost, output_cost)
+       VALUES ($1, $2, $3, $4, $5, $6, $7)`,
+      [phoneNumber, messageId, model, inputTokens, outputTokens, inputCost, outputCost]
+    );
+
+    console.log(`💵 Costo registrado: Input $${inputCost.toFixed(6)} + Output $${outputCost.toFixed(6)} = $${(inputCost + outputCost).toFixed(6)}`);
+  } catch (error) {
+    console.error('Error registrando costo de OpenAI:', error);
+    throw error;
   }
 }
 
@@ -303,5 +360,6 @@ module.exports = {
   getResponse,
   clearConversation,
   getStats,
-  updateConfig
+  updateConfig,
+  trackOpenAICost
 };

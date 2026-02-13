@@ -11,6 +11,7 @@ const http = require('http');
 const { Server } = require('socket.io');
 const webhookRoutes = require('./routes/webhook');
 const adminRoutes = require('./routes/admin');
+const panelRoutes = require('./routes/panel');
 const openaiService = require('./services/openai');
 const messageService = require('./services/messaging');
 const conversationService = require('./services/conversation');
@@ -51,6 +52,9 @@ app.use(express.static('public'));
 
 // Rutas para el panel de administración (ANTES de los middlewares de captura)
 app.use('/admin', adminRoutes);
+
+// Rutas para el panel de monitoreo de costos
+app.use('/panel', panelRoutes);
 
 // Rutas del webhook (mantener para compatibilidad)
 app.use('/webhook', webhookRoutes);
@@ -191,10 +195,17 @@ app.get('/', (req, res) => {
       'webhook_whatsapp': 'POST /webhook/whatsapp',
       'webhook_standard': 'POST /',
       'dashboard': 'GET /admin/dashboard',
+      'panel': 'GET /panel',
       'health': 'GET /health'
     },
     status: 'active'
   });
+});
+
+// Ruta para el panel de monitoreo de costos
+app.get('/panel', (req, res) => {
+  console.log('💰 Panel de monitoreo solicitado');
+  res.sendFile(__dirname + '/public/panel.html');
 });
 
 // Manejo de errores global
@@ -233,7 +244,9 @@ async function startServer() {
       console.log('\n🚀 ==========================================');
       console.log(`🤖 Chatbot de WhatsApp iniciado`);
       console.log(`🌐 Servidor corriendo en puerto ${PORT}`);
-      console.log(`🔄 WebSocket: Activado para tiempo real`);
+      console.log(`� Dashboard Admin: http://localhost:${PORT}/admin/dashboard`);
+      console.log(`💰 Panel de Costos: http://localhost:${PORT}/panel`);
+      console.log(`�🔄 WebSocket: Activado para tiempo real`);
       console.log('🚀 ==========================================\n');
 
       // Verificar configuración
