@@ -1,15 +1,23 @@
--- Migración para tracking de costos de OpenAI y Meta
--- Ejecutar después de init.sql
+-- Migración para tracking de costos - VERSION LIMPIA
+
+-- Eliminar objetos existentes en orden correcto
+DROP TRIGGER IF EXISTS pricing_config_updated_at ON pricing_config;
+DROP FUNCTION IF EXISTS update_pricing_config_updated_at();
+DROP VIEW IF EXISTS cost_summary;
+DROP TABLE IF EXISTS meta_costs CASCADE;
+DROP TABLE IF EXISTS openai_costs CASCADE;
+DROP TABLE IF EXISTS pricing_config CASCADE;
 
 -- Tabla para precios de referencia
-CREATE TABLE IF NOT EXISTS pricing_config (
+CREATE TABLE pricing_config (
     id SERIAL PRIMARY KEY,
-    service VARCHAR(50) NOT NULL UNIQUE,
+    service VARCHAR(50) NOT NULL,
     metric VARCHAR(50) NOT NULL,
     price_per_unit DECIMAL(10, 8) NOT NULL,
     currency VARCHAR(3) DEFAULT 'USD',
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    notes TEXT
+    notes TEXT,
+    UNIQUE(service, metric)
 );
 
 -- Insertar precios actualizados (Febrero 2026)
@@ -19,7 +27,7 @@ INSERT INTO pricing_config (service, metric, price_per_unit, notes) VALUES
 ('meta_whatsapp', 'conversation', 0.0085, 'Costo por conversación de WhatsApp (promedio)');
 
 -- Tabla para tracking de costos de OpenAI
-CREATE TABLE IF NOT EXISTS openai_costs (
+CREATE TABLE openai_costs (
     id SERIAL PRIMARY KEY,
     phone_number VARCHAR(20) NOT NULL,
     message_id INTEGER REFERENCES messages(id) ON DELETE CASCADE,
@@ -35,7 +43,7 @@ CREATE TABLE IF NOT EXISTS openai_costs (
 );
 
 -- Tabla para tracking de costos de Meta (WhatsApp)
-CREATE TABLE IF NOT EXISTS meta_costs (
+CREATE TABLE meta_costs (
     id SERIAL PRIMARY KEY,
     phone_number VARCHAR(20) NOT NULL,
     conversation_id INTEGER REFERENCES conversations(id) ON DELETE CASCADE,
@@ -48,13 +56,13 @@ CREATE TABLE IF NOT EXISTS meta_costs (
 );
 
 -- Índices para búsquedas rápidas
-CREATE INDEX IF NOT EXISTS idx_openai_costs_phone ON openai_costs(phone_number);
-CREATE INDEX IF NOT EXISTS idx_openai_costs_created ON openai_costs(created_at);
-CREATE INDEX IF NOT EXISTS idx_meta_costs_phone ON meta_costs(phone_number);
-CREATE INDEX IF NOT EXISTS idx_meta_costs_created ON meta_costs(created_at);
+CREATE INDEX idx_openai_costs_phone ON openai_costs(phone_number);
+CREATE INDEX idx_openai_costs_created ON openai_costs(created_at);
+CREATE INDEX idx_meta_costs_phone ON meta_costs(phone_number);
+CREATE INDEX idx_meta_costs_created ON meta_costs(created_at);
 
 -- Vista combinada de costos
-CREATE OR REPLACE VIEW cost_summary AS
+CREATE VIEW cost_summary AS
 SELECT 
     'openai' as service,
     phone_number,
@@ -74,7 +82,7 @@ FROM meta_costs
 GROUP BY phone_number, DATE(created_at);
 
 -- Trigger para actualizar updated_at en pricing_config
-CREATE OR REPLACE FUNCTION update_pricing_config_updated_at()
+CREATE FUNCTION update_pricing_config_updated_at()
 RETURNS TRIGGER AS $$
 BEGIN
     NEW.updated_at = CURRENT_TIMESTAMP;
