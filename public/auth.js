@@ -127,28 +127,29 @@ function addLogoutButton(containerId = 'header') {
     
     const container = document.querySelector('.' + containerId) || document.querySelector('.header') || document.body;
     
-    // Crear elemento de usuario
+    // Crear contenedor principal
     const userInfo = document.createElement('div');
-    userInfo.style.cssText = 'display: flex; align-items: center; gap: 15px; margin-left: auto;';
-    userInfo.innerHTML = `
-        <div style="text-align: right; font-size: 0.85rem;">
-            <div style="font-weight: 600;">👤 ${user.username}</div>
-            <div style="opacity: 0.7; font-size: 0.75rem;">Sesión hasta: ${user.expiresAt.toLocaleDateString()}</div>
-        </div>
-        <button onclick="logout()" style="
-            padding: 8px 16px;
-            background: rgba(255,255,255,0.2);
-            border: 1px solid rgba(255,255,255,0.3);
-            border-radius: 6px;
-            color: inherit;
-            cursor: pointer;
-            font-size: 0.85rem;
-            font-weight: 500;
-            transition: all 0.2s ease;
-        " onmouseover="this.style.background='rgba(255,255,255,0.3)'" onmouseout="this.style.background='rgba(255,255,255,0.2)'">
-            🚪 Cerrar Sesión
-        </button>
+    userInfo.className = 'auth-user-info';
+    
+    // Crear info del usuario
+    const userDetails = document.createElement('div');
+    userDetails.className = 'auth-user-details';
+    userDetails.innerHTML = `
+        <div class="auth-username">👤 ${user.username}</div>
+        <div class="auth-session-expiry">Sesión hasta: ${user.expiresAt.toLocaleDateString()}</div>
     `;
+    
+    // Crear botón de logout
+    const logoutBtn = document.createElement('button');
+    logoutBtn.className = 'auth-logout-btn';
+    logoutBtn.textContent = '🚪 Cerrar Sesión';
+    logoutBtn.addEventListener('click', function() {
+        logout();
+    });
+    
+    // Ensamblar elementos
+    userInfo.appendChild(userDetails);
+    userInfo.appendChild(logoutBtn);
     
     // Insertar al final del header
     if (container.classList.contains('header') || container.classList.contains('header-content')) {
