@@ -4,10 +4,16 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Panel de Monitoreo de Costos - BLAK Chatbot</title>
+    <script src="/auth.js"></script>
     <link rel="stylesheet" href="panel.css">
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 </head>
 <body>
+    <script>
+        // Verificar autenticación al cargar la página
+        requireAuth();
+    </script>
+    
     <div class="container">
         <!-- Header -->
         <header class="header">
@@ -176,5 +182,14 @@
     </div>
 
     <script src="panel.js"></script>
+    <script>
+        // Agregar botón de logout cuando cargue la página
+        window.addEventListener('DOMContentLoaded', function() {
+            const headerContent = document.querySelector('.header-content');
+            if (headerContent) {
+                addLogoutButton('header-content');
+            }
+        });
+    </script>
 </body>
 </html>

@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login - BLAK Chatbot</title>
+    <link rel="stylesheet" href="login.css">
+</head>
+<body>
+    <div class="login-container">
+        <div class="login-box">
+            <div class="logo">
+                <h1>⚡ BLAK</h1>
+                <p>Chatbot WhatsApp</p>
+            </div>
+            
+            <form id="loginForm" onsubmit="handleLogin(event)">
+                <div class="form-group">
+                    <label for="username">Usuario</label>
+                    <input 
+                        type="text" 
+                        id="username" 
+                        name="username" 
+                        placeholder="Ingrese su usuario"
+                        autocomplete="username"
+                        required
+                    >
+                </div>
+                
+                <div class="form-group">
+                    <label for="password">Contraseña</label>
+                    <input 
+                        type="password" 
+                        id="password" 
+                        name="password" 
+                        placeholder="Ingrese su contraseña"
+                        autocomplete="current-password"
+                        required
+                    >
+                </div>
+                
+                <div class="form-group checkbox-group">
+                    <label>
+                        <input type="checkbox" id="rememberMe" checked>
+                        Mantener sesión iniciada (30 días)
+                    </label>
+                </div>
+                
+                <div id="errorMessage" class="error-message"></div>
+                
+                <button type="submit" class="btn-login">Iniciar Sesión</button>
+            </form>
+            
+            <div class="demo-info">
+                <p><strong>👤 Demo:</strong></p>
+                <p>Usuario: <code>demo</code> | Contraseña: <code>demo123</code></p>
+                <p>Usuario: <code>admin</code> | Contraseña: <code>admin123</code></p>
+            </div>
+        </div>
+    </div>
+    
+    <script src="auth.js"></script>
+    <script>
+        // Si ya está logueado, redirigir
+        if (isAuthenticated()) {
+            window.location.href = '/admin-dashboard.html';
+        }
+        
+        function handleLogin(event) {
+            event.preventDefault();
+            
+            const username = document.getElementById('username').value;
+            const password = document.getElementById('password').value;
+            const rememberMe = document.getElementById('rememberMe').checked;
+            const errorMessage = document.getElementById('errorMessage');
+            
+            // Credenciales de demo
+            const validUsers = {
+                'demo': 'demo123',
+                'admin': 'admin123',
+                'cliente': 'cliente123'
+            };
+            
+            if (validUsers[username] && validUsers[username] === password) {
+                // Login exitoso
+                login(username, rememberMe);
+                errorMessage.textContent = '';
+                
+                // Redirigir al dashboard
+                window.location.href = '/admin-dashboard.html';
+            } else {
+                // Login fallido
+                errorMessage.textContent = '❌ Usuario o contraseña incorrectos';
+                document.getElementById('password').value = '';
+            }
+        }
+    </script>
+</body>
+</html>

@@ -5,9 +5,15 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Chatbot WhatsApp</title>
     <script src="/socket.io/socket.io.js"></script>
+    <script src="/auth.js"></script>
     <link rel="stylesheet" href="/admin-dashboard.css">
 </head>
 <body>
+    <script>
+        // Verificar autenticación al cargar la página
+        requireAuth();
+    </script>
+    
     <div class="header">
         <h1>⚡ CHATBOT DASHBOARD</h1>
         <p>Sistema de Gestión de Conversaciones WhatsApp</p>
@@ -67,5 +73,11 @@
     </div>
 
     <script src="/admin-dashboard.js"></script>
+    <script>
+        // Agregar botón de logout cuando cargue la página
+        window.addEventListener('DOMContentLoaded', function() {
+            addLogoutButton('header');
+        });
+    </script>
 </body>
 </html>
