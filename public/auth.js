@@ -24,9 +24,12 @@ function login(username, rememberMe = true) {
  * Cerrar sesión
  */
 function logout() {
+    console.log('🚪 Cerrando sesión...');
     localStorage.removeItem(AUTH_KEY);
-    console.log('🚪 Sesión cerrada');
-    window.location.href = '/login.html';
+    console.log('✅ Sesión cerrada - localStorage limpiado');
+    setTimeout(() => {
+        window.location.href = '/login.html';
+    }, 100);
 }
 
 /**
@@ -122,10 +125,14 @@ function addLogoutButton(containerId = 'header') {
     const user = getCurrentUser();
     
     if (!user) {
+        console.log('❌ No hay usuario autenticado');
         return;
     }
     
+    console.log('✅ Usuario encontrado:', user.username);
+    
     const container = document.querySelector('.' + containerId) || document.querySelector('.header') || document.body;
+    console.log('📦 Contenedor encontrado:', container);
     
     // Crear contenedor principal
     const userInfo = document.createElement('div');
@@ -142,10 +149,18 @@ function addLogoutButton(containerId = 'header') {
     // Crear botón de logout
     const logoutBtn = document.createElement('button');
     logoutBtn.className = 'auth-logout-btn';
+    logoutBtn.type = 'button';
     logoutBtn.textContent = '🚪 Cerrar Sesión';
-    logoutBtn.addEventListener('click', function() {
+    
+    // Agregar evento de click
+    logoutBtn.addEventListener('click', function(e) {
+        e.preventDefault();
+        e.stopPropagation();
+        console.log('🖱️ Click en botón de logout detectado');
         logout();
-    });
+    }, false);
+    
+    console.log('🔘 Botón de logout creado');
     
     // Ensamblar elementos
     userInfo.appendChild(userDetails);
@@ -156,6 +171,9 @@ function addLogoutButton(containerId = 'header') {
         container.style.display = 'flex';
         container.style.alignItems = 'center';
         container.appendChild(userInfo);
+        console.log('✅ Botón de logout agregado al DOM');
+    } else {
+        console.log('⚠️ Contenedor no es header o header-content');
     }
 }
 

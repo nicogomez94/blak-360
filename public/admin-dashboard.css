@@ -699,6 +699,8 @@ body {
     align-items: center;
     gap: 15px;
     margin-left: auto;
+    position: relative;
+    z-index: 100;
 }
 
 .auth-user-details {
@@ -718,23 +720,35 @@ body {
 }
 
 .auth-logout-btn {
-    padding: 8px 16px;
+    z-index: 999;
+    padding: 10px 20px;
     background: rgba(255, 255, 255, 0.2);
-    border: 1px solid rgba(255, 255, 255, 0.3);
-    border-radius: 6px;
+    border: 2px solid rgba(255, 255, 255, 0.4);
+    border-radius: 8px;
     color: #fff;
     cursor: pointer;
-    font-size: 0.85rem;
-    font-weight: 500;
+    font-size: 0.9rem;
+    font-weight: 600;
     transition: all 0.2s ease;
+    position: relative;
+    z-index: 101;
+    outline: none;
+    white-space: nowrap;
 }
 
 .auth-logout-btn:hover {
-    background: rgba(255, 255, 255, 0.3);
-    transform: translateY(-1px);
-    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+    background: rgba(255, 255, 255, 0.35);
+    border-color: rgba(255, 255, 255, 0.6);
+    transform: translateY(-2px);
+    box-shadow: 0 6px 12px rgba(0, 0, 0, 0.3);
 }
 
 .auth-logout-btn:active {
     transform: translateY(0);
+    background: rgba(255, 255, 255, 0.4);
+}
+
+.auth-logout-btn:focus {
+    outline: 2px solid rgba(255, 255, 255, 0.5);
+    outline-offset: 2px;
 }
