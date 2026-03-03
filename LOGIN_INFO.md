@@ -12,7 +12,7 @@ Sistema de autenticación básico para demos usando localStorage del navegador. 
 
 | Usuario | Contraseña | Descripción |
 |---------|-----------|-------------|
-| `demo` | `demo123` | Usuario demo general |
+| `demo` | `abraesnniikkoo` | Usuario demo general |
 | `admin` | `admin123` | Usuario administrador |
 | `cliente` | `cliente123` | Usuario cliente |
 
@@ -88,7 +88,7 @@ Para agregar nuevos usuarios de demo, edita `login.html`:
 
 ```javascript
 const validUsers = {
-    'demo': 'demo123',
+    'demo': 'abraesnniikkoo',
     'admin': 'admin123',
     'cliente': 'cliente123',
     'tuusuario': 'tupassword'  // Agregar aquí
