@@ -36,6 +36,11 @@ if (isDatabaseConfigured) {
     connectionTimeoutMillis: 10000,
   });
 
+  // Forzar search_path al schema aislado en cada nueva conexión del pool
+  pool.on('connect', (client) => {
+    client.query("SET search_path TO blak_twilio, public");
+  });
+
   // Evento para manejar errores de conexión
   pool.on('error', (err, client) => {
     console.error('❌ Error en el pool de conexiones de PostgreSQL:', err);
