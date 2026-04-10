@@ -16,11 +16,12 @@ console.log(`🔍 Base de datos configurada: ${isDatabaseConfigured}`);
 let pool = null;
 
 if (isDatabaseConfigured) {
+  // Conexiones internas de Render (sin .render.com) no usan SSL
+  const dbUrl = process.env.DATABASE_URL || '';
+  const needsSSL = dbUrl.includes('sslmode=require') && dbUrl.includes('.render.com') || dbUrl.includes('oregon-postgres') || dbUrl.includes('amazonaws');
   const config = process.env.DATABASE_URL ? {
-    connectionString: process.env.DATABASE_URL,
-    ssl: {
-      rejectUnauthorized: false
-    }
+    connectionString: dbUrl,
+    ssl: needsSSL ? { rejectUnauthorized: false } : false
   } : {
     user: process.env.DB_USER || 'postgres',
     host: process.env.DB_HOST || 'localhost',
