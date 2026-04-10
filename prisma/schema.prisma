@@ -1,0 +1,100 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum MessageSender {
+  user
+  ai
+  admin
+}
+
+model Conversation {
+  id                Int        @id @default(autoincrement())
+  phoneNumber       String     @unique(map: "conversations_phone_number_key") @map("phone_number") @db.VarChar(20)
+  contactName       String?    @default("Sin nombre") @map("contact_name") @db.VarChar(255)
+  isManualMode      Boolean?   @default(false) @map("is_manual_mode")
+  assignedAdmin     String?    @map("assigned_admin") @db.VarChar(255)
+  manualModeStarted DateTime?  @map("manual_mode_started") @db.Timestamp(6)
+  manualModeEnded   DateTime?  @map("manual_mode_ended") @db.Timestamp(6)
+  messageCount      Int?       @default(0) @map("message_count")
+  lastActivity      DateTime?  @default(now()) @map("last_activity") @db.Timestamp(6)
+  createdAt         DateTime?  @default(now()) @map("created_at") @db.Timestamp(6)
+  updatedAt         DateTime?  @default(now()) @map("updated_at") @db.Timestamp(6)
+  metaCosts         MetaCost[]
+
+  @@index([lastActivity], map: "idx_conversations_last_activity")
+  @@index([phoneNumber], map: "idx_conversations_phone")
+  @@map("conversations")
+}
+
+model Message {
+  id          Int           @id @default(autoincrement())
+  phoneNumber String        @map("phone_number") @db.VarChar(20)
+  messageText String        @map("message_text")
+  sender      MessageSender
+  messageId   String?       @map("message_id") @db.VarChar(255)
+  timestamp   DateTime?     @default(now()) @map("timestamp") @db.Timestamp(6)
+  createdAt   DateTime?     @default(now()) @map("created_at") @db.Timestamp(6)
+  openaiCosts OpenAICost[]
+
+  @@index([phoneNumber], map: "idx_messages_phone")
+  @@index([sender], map: "idx_messages_sender")
+  @@index([timestamp], map: "idx_messages_timestamp")
+  @@map("messages")
+}
+
+model PricingConfig {
+  id           Int       @id @default(autoincrement())
+  service      String    @db.VarChar(50)
+  metric       String    @db.VarChar(50)
+  pricePerUnit Decimal   @map("price_per_unit") @db.Decimal(10, 8)
+  currency     String?   @default("USD") @db.VarChar(3)
+  updatedAt    DateTime? @default(now()) @map("updated_at") @db.Timestamp(6)
+  notes        String?
+
+  @@unique([service, metric], map: "pricing_config_service_metric_key")
+  @@map("pricing_config")
+}
+
+model OpenAICost {
+  id           Int       @id @default(autoincrement())
+  phoneNumber  String    @map("phone_number") @db.VarChar(20)
+  messageId    Int?      @map("message_id")
+  model        String    @db.VarChar(50)
+  inputTokens  Int       @map("input_tokens")
+  outputTokens Int       @map("output_tokens")
+  totalTokens  Int       @default(0) @map("total_tokens")
+  inputCost    Decimal   @map("input_cost") @db.Decimal(10, 6)
+  outputCost   Decimal   @map("output_cost") @db.Decimal(10, 6)
+  totalCost    Decimal   @default(0) @map("total_cost") @db.Decimal(10, 6)
+  currency     String?   @default("USD") @db.VarChar(3)
+  createdAt    DateTime? @default(now()) @map("created_at") @db.Timestamp(6)
+  message      Message?  @relation(fields: [messageId], references: [id], onDelete: Cascade, map: "openai_costs_message_id_fkey")
+
+  @@index([phoneNumber], map: "idx_openai_costs_phone")
+  @@index([createdAt], map: "idx_openai_costs_created")
+  @@map("openai_costs")
+}
+
+model MetaCost {
+  id                   Int           @id @default(autoincrement())
+  phoneNumber          String        @map("phone_number") @db.VarChar(20)
+  conversationId       Int?          @map("conversation_id")
+  messageId            String?       @map("message_id") @db.VarChar(255)
+  conversationCategory String?       @default("service") @map("conversation_category") @db.VarChar(50)
+  cost                 Decimal       @db.Decimal(10, 6)
+  currency             String?       @default("USD") @db.VarChar(3)
+  createdAt            DateTime?     @default(now()) @map("created_at") @db.Timestamp(6)
+  notes                String?
+  conversation         Conversation? @relation(fields: [conversationId], references: [id], onDelete: Cascade, map: "meta_costs_conversation_id_fkey")
+
+  @@index([phoneNumber], map: "idx_meta_costs_phone")
+  @@index([createdAt], map: "idx_meta_costs_created")
+  @@index([phoneNumber, conversationCategory, createdAt], map: "idx_meta_costs_window_lookup")
+  @@map("meta_costs")
+}

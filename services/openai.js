@@ -32,7 +32,7 @@ if (process.env.OPENAI_API_KEY) {
  * Configuración del chatbot - Optimizada para costos
  */
 const CHATBOT_CONFIG = {
-  model: 'gpt-3.5-turbo',
+  model: 'gpt-4o-mini',
   maxTokens: 700, // Extremadamente corto para evitar muletillas
   temperature: 0.5,// Mínima creatividad, máxima consistencia
   systemPrompt: `
@@ -241,11 +241,14 @@ async function trackOpenAICost({ phoneNumber, model, inputTokens, outputTokens, 
     const outputCost = (outputTokens / 1000) * (prices.output_token_1k || 0.0015);
 
     // Insertar en la base de datos
+    const totalTokens = inputTokens + outputTokens;
+    const totalCost = inputCost + outputCost;
+
     await db.query(
       `INSERT INTO openai_costs 
-       (phone_number, message_id, model, input_tokens, output_tokens, input_cost, output_cost)
-       VALUES ($1, $2, $3, $4, $5, $6, $7)`,
-      [phoneNumber, messageId, model, inputTokens, outputTokens, inputCost, outputCost]
+       (phone_number, message_id, model, input_tokens, output_tokens, total_tokens, input_cost, output_cost, total_cost)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)`,
+      [phoneNumber, messageId, model, inputTokens, outputTokens, totalTokens, inputCost, outputCost, totalCost]
     );
 
     console.log(`💵 Costo registrado: Input $${inputCost.toFixed(6)} + Output $${outputCost.toFixed(6)} = $${(inputCost + outputCost).toFixed(6)}`);
