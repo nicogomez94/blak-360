@@ -112,23 +112,73 @@ Por eso el bot recibía los mensajes (webhook GET/POST OK) pero no podía enviar
 
 ---
 
-## Estado actual
+## ✅ Solución aplicada — Todo funcionando
 
-| Check | Estado |
-|---|---|
-| Servidor Render activo | ✅ |
-| Webhook URL correcta en Meta | ✅ |
-| Token nuevo en Render | ✅ (deployado) |
-| App suscripta al WABA con campo `messages` | ✅ |
-| Webhook POST procesa correctamente | ✅ |
-| Envío directo con token nuevo | ✅ |
-| Webhooks reales de Meta llegan a Render | ❌ pendiente confirmar |
-| Token del servidor en runtime === token nuevo | ❓ pendiente verificar con `/diag` |
+### Causa raíz
+Dos problemas combinados:
+1. **Token de Meta vencido** el 10/04/2026 a las 19hs → el bot recibía webhooks pero no podía enviar respuestas
+2. **Suscripción del WABA rota** → Meta dejó de enviar webhooks al servidor (probablemente por los errores repetidos mientras el token estaba vencido)
+
+### Pasos exactos que lo resolvieron
+
+#### 1. Regenerar token en Meta Developers
+- Meta Developers → CHATBOT → WhatsApp → Configuración de la API → copiar nuevo token temporal
+
+#### 2. Actualizar token en Render
+- Render → blak-360 → Environment → `META_ACCESS_TOKEN` → nuevo valor → Save → Manual Deploy
+
+#### 3. Re-registrar el número via API
+```bash
+curl -s -X POST "https://graph.facebook.com/v21.0/879191825286629/register" \
+  -H "Authorization: Bearer <TOKEN>" \
+  -H "Content-Type: application/json" \
+  -d '{"messaging_product":"whatsapp","pin":"123456"}'
+# Resultado: {"success":true}
+```
+
+#### 4. Reset completo de la suscripción del WABA (el que realmente desbloqueó los webhooks)
+```bash
+# Paso 1: Desuscribir
+curl -s -X DELETE "https://graph.facebook.com/v21.0/25891405090484564/subscribed_apps" \
+  -H "Authorization: Bearer <TOKEN>"
+# Resultado: {"success":true}
+
+# Paso 2: Resuscribir con campo messages explícito
+curl -s -X POST "https://graph.facebook.com/v21.0/25891405090484564/subscribed_apps" \
+  -H "Authorization: Bearer <TOKEN>" \
+  -H "Content-Type: application/json" \
+  -d '{"subscribed_fields":["messages"]}'
+# Resultado: {"success":true}
+
+# Verificar
+curl -s "https://graph.facebook.com/v21.0/25891405090484564/subscribed_apps" \
+  -H "Authorization: Bearer <TOKEN>"
+# Resultado: {"data":[{"whatsapp_business_api_data":{"name":"CHATBOT","id":"862710273293680"}}]}
+```
 
 ---
 
-## Próximos pasos
+## ⚠️ Pendiente importante
 
-1. Verificar token activo en runtime: `GET https://blak-360.onrender.com/diag`
-2. Si el problema persiste → ir a **Meta Developers → CHATBOT → Roles de la app → Usuarios de prueba** y agregar la cuenta de Facebook vinculada al número +54 9 11 5229-1994
-3. Alternativa: crear token de sistema permanente desde Business Manager → Usuarios del sistema (evita el vencimiento diario)
+**El token temporal vence en ~24hs.** Para evitar que se repita el problema, crear un token de sistema permanente:
+
+1. **business.facebook.com → Zigo Dev → Usuarios del sistema**
+2. Crear usuario del sistema → Generar token → seleccionar app CHATBOT
+3. Permisos requeridos: `whatsapp_business_messaging`, `whatsapp_business_management`
+4. Actualizar `META_ACCESS_TOKEN` en Render con ese token permanente
+
+### Curls de mantenimiento para cuando se rompa de nuevo
+```bash
+# Verificar si el token es válido
+curl -s "https://graph.facebook.com/v21.0/me" -H "Authorization: Bearer <TOKEN>"
+
+# Verificar estado del número
+curl -s "https://graph.facebook.com/v21.0/879191825286629?fields=display_phone_number,quality_rating,status" \
+  -H "Authorization: Bearer <TOKEN>"
+
+# Reset suscripción WABA (ejecutar en orden)
+curl -s -X DELETE "https://graph.facebook.com/v21.0/25891405090484564/subscribed_apps" -H "Authorization: Bearer <TOKEN>"
+curl -s -X POST "https://graph.facebook.com/v21.0/25891405090484564/subscribed_apps" \
+  -H "Authorization: Bearer <TOKEN>" -H "Content-Type: application/json" \
+  -d '{"subscribed_fields":["messages"]}'
+```
