@@ -71,6 +71,9 @@ typings/
 .env.test.local
 .env.production.local
 
+# Local deployment credentials
+nueva.md
+
 # parcel-bundler cache (https://parceljs.org/)
 .cache
 .parcel-cache
