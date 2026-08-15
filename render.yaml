@@ -13,6 +13,12 @@ services:
         value: production
       - key: CHATBOT_ENABLED
         value: "false"
+      - key: CHATBOT_ACTIVE_FROM
+        value: "18"
+      - key: CHATBOT_ACTIVE_UNTIL
+        value: "9"
+      - key: CHATBOT_TIMEZONE
+        value: America/Argentina/Buenos_Aires
       - key: DATABASE_URL
         sync: false
       - key: OPENAI_API_KEY

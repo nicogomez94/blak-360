@@ -19,6 +19,7 @@ const openaiService = require('./services/openai');
 const messageService = require('./services/messaging');
 const conversationService = require('./services/conversation');
 const { verifyToken } = require('./middleware/auth');
+const { getChatbotSchedule, isChatbotActiveNow } = require('./services/chatbot-hours');
 
 // Importar base de datos
 const db = require('./config/database');
@@ -181,6 +182,7 @@ app.get('/health', async (req, res) => {
     // Obtener estadísticas (funciona con o sin DB)
     stats = await conversationService.getStats();
     
+    const schedule = getChatbotSchedule();
     res.json({
       status: 'OK',
       message: 'Servidor funcionando correctamente',
@@ -191,6 +193,12 @@ app.get('/health', async (req, res) => {
       environment: {
         NODE_ENV: process.env.NODE_ENV || 'development',
         chatbot_enabled: process.env.CHATBOT_ENABLED === 'true',
+        chatbot_active_now: isChatbotActiveNow(),
+        chatbot_schedule: {
+          active_from: schedule.activeFrom,
+          active_until: schedule.activeUntil,
+          timezone: schedule.timezone
+        },
         openai_configured: !!process.env.OPENAI_API_KEY,
         messaging_configured: !!(process.env.META_ACCESS_TOKEN && process.env.PHONE_NUMBER_ID),
         database_configured: db.isDatabaseConfigured

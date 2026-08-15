@@ -16,6 +16,15 @@ schema `public` usado por reservas y booking.
 El script `npm run db:bootstrap` es transaccional e idempotente. Nunca ejecuta
 las migraciones históricas destructivas de `migrations/`.
 
+## Horario automático
+
+El webhook conserva la recepción de eventos durante todo el día, pero la IA
+solo responde de 18:00 a 09:00 en `America/Argentina/Buenos_Aires`. Entre
+09:00 y 18:00 registra el evento y deja la conversación disponible para la
+operadora. El horario se controla en el servidor mediante
+`CHATBOT_ACTIVE_FROM`, `CHATBOT_ACTIVE_UNTIL` y `CHATBOT_TIMEZONE`; no depende
+de un cron ni de la zona horaria de Render.
+
 ## Activación de WhatsApp
 
 El servicio se despliega con `CHATBOT_ENABLED=false` y sin `PHONE_NUMBER_ID`.

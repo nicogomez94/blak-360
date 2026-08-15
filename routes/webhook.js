@@ -9,6 +9,7 @@ const openaiService = require('../services/openai');
 const messageService = require('../services/messaging');
 const conversationService = require('../services/conversation');
 const { requireAuth } = require('../middleware/auth');
+const { getChatbotSchedule, isChatbotActiveNow } = require('../services/chatbot-hours');
 
 function verifyMetaSignature(req, res, next) {
   if (process.env.NODE_ENV !== 'production') {
@@ -209,8 +210,9 @@ router.post('/whatsapp', verifyMetaSignature, async (req, res) => {
       return;
     }
 
-    if (process.env.CHATBOT_ENABLED !== 'true') {
-      console.log('⏸️ Chatbot pausado hasta configurar y autorizar el número de WhatsApp Business');
+    if (!isChatbotActiveNow()) {
+      const schedule = getChatbotSchedule();
+      console.log(`⏸️ Chatbot automático pausado fuera de horario (${schedule.activeFrom}:00–${schedule.activeUntil}:00, ${schedule.timezone}) o por configuración`);
       return;
     }
 
