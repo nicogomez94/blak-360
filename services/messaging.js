@@ -9,7 +9,7 @@ const db = require('../config/database');
 // Configuración de WhatsApp Cloud API
 const META_ACCESS_TOKEN = process.env.META_ACCESS_TOKEN;
 const PHONE_NUMBER_ID = process.env.PHONE_NUMBER_ID;
-const META_API_URL = 'https://graph.facebook.com/v18.0';
+const META_API_URL = 'https://graph.facebook.com/v24.0';
 
 // Detectar entorno
 const isDevelopment = process.env.NODE_ENV === 'development' || process.env.SANDBOX_MODE === 'true';
@@ -35,6 +35,9 @@ async function sendMessage(to, message) {
   try {
     console.log('📤 Enviando mensaje via WhatsApp Cloud API...');
 
+    if (process.env.CHATBOT_ENABLED !== 'true') {
+      throw new Error('El envío está desactivado hasta configurar el número de WhatsApp Business');
+    }
     if (!to || !message) {
       throw new Error('Faltan parámetros: to y message son requeridos');
     }

@@ -57,7 +57,7 @@ async function loadAllData() {
 // Cargar resumen de costos
 async function loadSummary(period) {
     try {
-        const response = await fetch(`/panel/costs/summary?period=${period}`);
+        const response = await authFetch(`/panel/costs/summary?period=${period}`);
         const data = await response.json();
         
         // Actualizar cards
@@ -92,7 +92,7 @@ async function loadSummary(period) {
 async function loadDailyCosts(period) {
     try {
         const days = period === '24h' ? 1 : period === '7d' ? 7 : period === '30d' ? 30 : 90;
-        const response = await fetch(`/panel/costs/daily?days=${days}`);
+        const response = await authFetch(`/panel/costs/daily?days=${days}`);
         const data = await response.json();
         
         updateDailyCostChart(data.data);
@@ -107,7 +107,7 @@ async function loadDailyCosts(period) {
 async function loadPhoneCosts(period) {
     try {
         const days = period === '24h' ? 1 : period === '7d' ? 7 : period === '30d' ? 30 : 999;
-        const response = await fetch(`/panel/costs/by-phone?days=${days}&limit=20`);
+        const response = await authFetch(`/panel/costs/by-phone?days=${days}&limit=20`);
         const data = await response.json();
         
         updatePhoneTable(data.data);
@@ -121,7 +121,7 @@ async function loadPhoneCosts(period) {
 // Cargar configuración de precios
 async function loadPricing() {
     try {
-        const response = await fetch('/panel/pricing');
+        const response = await authFetch('/panel/pricing');
         const data = await response.json();
         
         updatePricingTable(data.pricing);
@@ -333,7 +333,7 @@ async function handlePriceUpdate(event) {
     const price = parseFloat(document.getElementById('editPrice').value);
     
     try {
-        const response = await fetch(`/panel/pricing/${service}/${metric}`, {
+        const response = await authFetch(`/panel/pricing/${service}/${metric}`, {
             method: 'PUT',
             headers: {
                 'Content-Type': 'application/json'

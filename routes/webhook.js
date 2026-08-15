@@ -3,10 +3,35 @@
  */
 
 const express = require('express');
+const crypto = require('crypto');
 const router = express.Router();
 const openaiService = require('../services/openai');
 const messageService = require('../services/messaging');
 const conversationService = require('../services/conversation');
+const { requireAuth } = require('../middleware/auth');
+
+function verifyMetaSignature(req, res, next) {
+  if (process.env.NODE_ENV !== 'production') {
+    return next();
+  }
+
+  const appSecret = process.env.META_APP_SECRET;
+  const signature = req.get('x-hub-signature-256') || '';
+  if (!appSecret || !signature.startsWith('sha256=') || !req.rawBody) {
+    return res.sendStatus(401);
+  }
+
+  const expected = `sha256=${crypto.createHmac('sha256', appSecret).update(req.rawBody).digest('hex')}`;
+  const expectedBuffer = Buffer.from(expected);
+  const signatureBuffer = Buffer.from(signature);
+
+  if (expectedBuffer.length !== signatureBuffer.length
+      || !crypto.timingSafeEqual(expectedBuffer, signatureBuffer)) {
+    return res.sendStatus(401);
+  }
+
+  next();
+}
 
 /**
  * Verificación de webhook para Cloud API de Meta
@@ -39,7 +64,7 @@ router.get('/whatsapp', (req, res) => {
  * Webhook principal para recibir mensajes de WhatsApp
  * El proveedor enviará un POST a esta ruta cuando llegue un mensaje
  */
-router.post('/whatsapp', async (req, res) => {
+router.post('/whatsapp', verifyMetaSignature, async (req, res) => {
   try {
     console.log('\n🚨 ===== WEBHOOK RECIBIDO =====');
     console.log('🕐 Timestamp:', new Date().toISOString());
@@ -184,6 +209,11 @@ router.post('/whatsapp', async (req, res) => {
       return;
     }
 
+    if (process.env.CHATBOT_ENABLED !== 'true') {
+      console.log('⏸️ Chatbot pausado hasta configurar y autorizar el número de WhatsApp Business');
+      return;
+    }
+
     // ===== GESTIÓN DE CONVERSACIONES =====
     console.log('\n🎯 ===== GESTIÓN DE CONVERSACIÓN =====');
     
@@ -293,7 +323,7 @@ router.get('/status', (req, res) => {
 /**
  * Endpoint para probar la integración manualmente
  */
-router.post('/test', async (req, res) => {
+router.post('/test', requireAuth, async (req, res) => {
   try {
     const { message, phone } = req.body;
     

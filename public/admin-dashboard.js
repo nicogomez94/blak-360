@@ -6,7 +6,7 @@ let currentFilter = 'all'; // Filtro actual
 
 // Conectar WebSocket para tiempo real
 function connectWebSocket() {
-    socket = io();
+    socket = io({ auth: { token: getAuthToken() } });
     
     socket.on('connect', () => {
         console.log('🔗 Conectado al WebSocket');
@@ -97,7 +97,7 @@ function showNotification(message) {
 async function loadData() {
     try {
         // Cargar estadísticas
-        const statsResponse = await fetch('/admin/api/stats');
+        const statsResponse = await authFetch('/admin/api/stats');
         const stats = await statsResponse.json();
         
         document.getElementById('stats').innerHTML = `
@@ -120,7 +120,7 @@ async function loadData() {
         `;
 
         // Cargar conversaciones
-        const conversationsResponse = await fetch('/admin/api/conversations');
+        const conversationsResponse = await authFetch('/admin/api/conversations');
         allConversations = await conversationsResponse.json();
         
         // Aplicar filtro actual
@@ -290,7 +290,7 @@ async function setMode(phoneNumber, mode) {
     }
     
     try {
-        const response = await fetch(`/admin/api/conversations/${phoneNumber}/${mode}`, {
+        const response = await authFetch(`/admin/api/conversations/${phoneNumber}/${mode}`, {
             method: 'POST'
         });
         
@@ -334,7 +334,7 @@ async function deleteConversation(phoneNumber) {
     }
     
     try {
-        const response = await fetch(`/admin/api/conversations/${phoneNumber}`, {
+        const response = await authFetch(`/admin/api/conversations/${phoneNumber}`, {
             method: 'DELETE'
         });
         
@@ -363,7 +363,7 @@ async function deleteConversation(phoneNumber) {
 async function viewConversation(phoneNumber) {
     try {
         currentConversation = phoneNumber;
-        const response = await fetch(`/admin/api/conversation/${phoneNumber}`);
+        const response = await authFetch(`/admin/api/conversation/${phoneNumber}`);
         const data = await response.json();
         
         // Actualizar header del chat
@@ -456,7 +456,7 @@ async function sendMessage() {
     sendBtn.disabled = true;
     
     try {
-        const response = await fetch(`/admin/api/send/${currentConversation}`, {
+        const response = await authFetch(`/admin/api/send/${currentConversation}`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ message })
@@ -467,7 +467,7 @@ async function sendMessage() {
             input.style.height = 'auto';
             
             // Verificar si ya está en modo manual antes de activarlo
-            const currentResponse = await fetch(`/admin/api/conversation/${currentConversation}`);
+            const currentResponse = await authFetch(`/admin/api/conversation/${currentConversation}`);
             const currentData = await currentResponse.json();
             
             if (!currentData.conversation.isManualMode) {

@@ -6,6 +6,14 @@
 const express = require('express');
 const router = express.Router();
 const db = require('../config/database');
+const { requireAuth } = require('../middleware/auth');
+
+router.use((req, res, next) => {
+  if (req.method === 'GET' && req.path === '/') {
+    return next();
+  }
+  return requireAuth(req, res, next);
+});
 
 /**
  * GET /panel/costs/summary

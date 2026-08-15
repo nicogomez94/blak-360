@@ -3,18 +3,22 @@
  * Integra OpenAI, Express y PostgreSQL
  */
 
-// Cargar variables de entorno (siempre .env.development)
-require('dotenv').config({ path: '.env.development' });
+// Render inyecta las variables de producción. El archivo local se usa solo en desarrollo.
+if (process.env.NODE_ENV !== 'production') {
+  require('dotenv').config({ path: '.env.development' });
+}
 const express = require('express');
 const bodyParser = require('body-parser');
 const http = require('http');
 const { Server } = require('socket.io');
+const authRoutes = require('./routes/auth');
 const webhookRoutes = require('./routes/webhook');
 const adminRoutes = require('./routes/admin');
 const panelRoutes = require('./routes/panel');
 const openaiService = require('./services/openai');
 const messageService = require('./services/messaging');
 const conversationService = require('./services/conversation');
+const { verifyToken } = require('./middleware/auth');
 
 // Importar base de datos
 const db = require('./config/database');
@@ -26,6 +30,15 @@ const io = new Server(server);
 const PORT = process.env.PORT || 3001;
 
 // Configurar WebSocket para tiempo real
+io.use((socket, next) => {
+  const session = verifyToken(socket.handshake.auth?.token);
+  if (!session) {
+    return next(new Error('Autenticación requerida'));
+  }
+  socket.adminSession = session;
+  next();
+});
+
 io.on('connection', (socket) => {
   console.log('🔗 Cliente conectado al WebSocket:', socket.id);
   
@@ -44,8 +57,15 @@ io.on('connection', (socket) => {
 global.io = io;
 
 // Middleware para parsear el body de las peticiones
+app.set('trust proxy', 1);
 app.use(bodyParser.urlencoded({ extended: false }));
-app.use(bodyParser.json());
+app.use(bodyParser.json({
+  verify: (req, res, buffer) => {
+    req.rawBody = buffer;
+  }
+}));
+
+app.use('/auth', authRoutes);
 
 // Servir archivos estáticos desde la carpeta public
 app.use(express.static('public'));
@@ -103,6 +123,9 @@ app.use('*', (req, res, next) => {
 
 // Ruta para la raíz (formato estándar)
 app.post('/', async (req, res) => {
+  if (process.env.NODE_ENV === 'production') {
+    return res.sendStatus(404);
+  }
   console.log('\n🏠 ===== WEBHOOK EN RUTA RAÍZ (/) =====');
   console.log('🎯 Procesando como formato estándar...');
   
@@ -167,6 +190,7 @@ app.get('/health', async (req, res) => {
       storage: db.isDatabaseConfigured ? 'postgresql' : 'memory',
       environment: {
         NODE_ENV: process.env.NODE_ENV || 'development',
+        chatbot_enabled: process.env.CHATBOT_ENABLED === 'true',
         openai_configured: !!process.env.OPENAI_API_KEY,
         messaging_configured: !!(process.env.META_ACCESS_TOKEN && process.env.PHONE_NUMBER_ID),
         database_configured: db.isDatabaseConfigured
@@ -213,7 +237,7 @@ app.use((error, req, res, next) => {
   console.error('❌ Error global capturado:', error);
   res.status(500).json({
     error: 'Error interno del servidor',
-    message: error.message
+    message: process.env.NODE_ENV === 'production' ? 'Error interno' : error.message
   });
 });
 
@@ -232,8 +256,7 @@ async function startServer() {
         console.log('✅ Conexión a PostgreSQL establecida exitosamente');
         console.log('✅ Base de datos conectada y lista para usar');
       } else {
-        console.warn('⚠️ No se pudo conectar a PostgreSQL');
-        console.warn('🔄 Continuando con almacenamiento en memoria...');
+        throw new Error('No se pudo conectar a PostgreSQL');
       }
     } else {
       console.log('📝 PostgreSQL no configurado, usando almacenamiento en memoria');
@@ -268,7 +291,13 @@ async function startServer() {
     console.error('❌ Error iniciando servidor:', error);
     console.error('Detalles:', error.message);
     
-    // Intentar iniciar sin base de datos
+    if (process.env.NODE_ENV === 'production') {
+      console.error('🛑 Producción requiere PostgreSQL. El proceso se detendrá.');
+      process.exitCode = 1;
+      return;
+    }
+
+    // Intentar iniciar sin base de datos solo en desarrollo
     console.log('🔄 Intentando iniciar solo con memoria...');
     
     server.listen(PORT, () => {

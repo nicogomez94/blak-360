@@ -7,6 +7,7 @@ const router = express.Router();
 const path = require('path');
 const conversationService = require('../services/conversation');
 const messageService = require('../services/messaging');
+const { requireAuth } = require('../middleware/auth');
 
 /**
  * Dashboard principal - Servir archivo HTML estático
@@ -15,6 +16,8 @@ router.get('/', (req, res) => {
   const htmlPath = path.join(__dirname, '..', 'public', 'admin-dashboard.html');
   res.sendFile(htmlPath);
 });
+
+router.use(requireAuth);
 
 /**
  * API: Obtener estadísticas
