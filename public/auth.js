@@ -1,19 +1,18 @@
 /**
- * Sistema de autenticación básico usando localStorage
- * Para demos con sesión extendida
+ * Sesión administrativa respaldada por el servidor.
  */
 
 const AUTH_KEY = 'blak_auth_session';
-const SESSION_DURATION = 30 * 24 * 60 * 60 * 1000; // 30 días en milisegundos
 
 /**
  * Iniciar sesión
  */
-function login(username, rememberMe = true) {
+function login(username, token, expiresAt) {
     const sessionData = {
-        username: username,
+        username,
+        token,
         loginTime: Date.now(),
-        expiresAt: rememberMe ? Date.now() + SESSION_DURATION : Date.now() + (24 * 60 * 60 * 1000) // 30 días o 24 horas
+        expiresAt
     };
     
     localStorage.setItem(AUTH_KEY, JSON.stringify(sessionData));
@@ -53,7 +52,7 @@ function isAuthenticated() {
             return false;
         }
         
-        return true;
+        return Boolean(session.token);
     } catch (error) {
         console.error('❌ Error al verificar sesión:', error);
         localStorage.removeItem(AUTH_KEY);
@@ -75,6 +74,7 @@ function getCurrentUser() {
         const session = JSON.parse(sessionData);
         return {
             username: session.username,
+            token: session.token,
             loginTime: new Date(session.loginTime),
             expiresAt: new Date(session.expiresAt)
         };
@@ -87,22 +87,22 @@ function getCurrentUser() {
 /**
  * Extender la sesión (útil para actividad del usuario)
  */
-function extendSession() {
-    const sessionData = localStorage.getItem(AUTH_KEY);
-    
-    if (!sessionData) {
-        return false;
+function getAuthToken() {
+    const user = getCurrentUser();
+    return user?.token || '';
+}
+
+async function authFetch(input, init = {}) {
+    const headers = new Headers(init.headers || {});
+    headers.set('Authorization', `Bearer ${getAuthToken()}`);
+    const response = await fetch(input, { ...init, headers });
+
+    if (response.status === 401) {
+        logout();
+        throw new Error('Sesión vencida');
     }
-    
-    try {
-        const session = JSON.parse(sessionData);
-        session.expiresAt = Date.now() + SESSION_DURATION;
-        localStorage.setItem(AUTH_KEY, JSON.stringify(session));
-        return true;
-    } catch (error) {
-        console.error('❌ Error al extender sesión:', error);
-        return false;
-    }
+
+    return response;
 }
 
 /**
@@ -182,6 +182,7 @@ window.login = login;
 window.logout = logout;
 window.isAuthenticated = isAuthenticated;
 window.getCurrentUser = getCurrentUser;
-window.extendSession = extendSession;
+window.getAuthToken = getAuthToken;
+window.authFetch = authFetch;
 window.requireAuth = requireAuth;
 window.addLogoutButton = addLogoutButton;

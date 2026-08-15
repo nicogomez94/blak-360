@@ -3,10 +3,36 @@
  */
 
 const express = require('express');
+const crypto = require('crypto');
 const router = express.Router();
 const openaiService = require('../services/openai');
 const messageService = require('../services/messaging');
 const conversationService = require('../services/conversation');
+const { requireAuth } = require('../middleware/auth');
+const { getChatbotSchedule, isChatbotActiveNow } = require('../services/chatbot-hours');
+
+function verifyMetaSignature(req, res, next) {
+  if (process.env.NODE_ENV !== 'production') {
+    return next();
+  }
+
+  const appSecret = process.env.META_APP_SECRET;
+  const signature = req.get('x-hub-signature-256') || '';
+  if (!appSecret || !signature.startsWith('sha256=') || !req.rawBody) {
+    return res.sendStatus(401);
+  }
+
+  const expected = `sha256=${crypto.createHmac('sha256', appSecret).update(req.rawBody).digest('hex')}`;
+  const expectedBuffer = Buffer.from(expected);
+  const signatureBuffer = Buffer.from(signature);
+
+  if (expectedBuffer.length !== signatureBuffer.length
+      || !crypto.timingSafeEqual(expectedBuffer, signatureBuffer)) {
+    return res.sendStatus(401);
+  }
+
+  next();
+}
 
 /**
  * Verificación de webhook para Cloud API de Meta
@@ -39,7 +65,7 @@ router.get('/whatsapp', (req, res) => {
  * Webhook principal para recibir mensajes de WhatsApp
  * El proveedor enviará un POST a esta ruta cuando llegue un mensaje
  */
-router.post('/whatsapp', async (req, res) => {
+router.post('/whatsapp', verifyMetaSignature, async (req, res) => {
   try {
     console.log('\n🚨 ===== WEBHOOK RECIBIDO =====');
     console.log('🕐 Timestamp:', new Date().toISOString());
@@ -83,7 +109,7 @@ router.post('/whatsapp', async (req, res) => {
     // Agregar múltiples verificaciones para diferentes formatos
     console.log('\n🔍 ANALIZANDO FORMATO DEL WEBHOOK:');
     
-    // Formato 1: Webhook directo de 360dialog
+    // Formato 1: webhook con array de mensajes
     if (webhookData.messages) {
       console.log('✅ Formato detectado: Webhook con array de mensajes');
       console.log('📬 Cantidad de mensajes:', webhookData.messages.length);
@@ -181,6 +207,12 @@ router.post('/whatsapp', async (req, res) => {
     if (!fromNumber) {
       console.log('⚠️  No se pudo extraer número de teléfono, ignorando...');
       // Ya se respondió al inicio
+      return;
+    }
+
+    if (!(await isChatbotActiveNow())) {
+      const schedule = await getChatbotSchedule();
+      console.log(`⏸️ Chatbot automático pausado fuera de horario (${schedule.activeFrom}:00–${schedule.activeUntil}:00, ${schedule.timezone}) o por configuración`);
       return;
     }
 
@@ -293,7 +325,7 @@ router.get('/status', (req, res) => {
 /**
  * Endpoint para probar la integración manualmente
  */
-router.post('/test', async (req, res) => {
+router.post('/test', requireAuth, async (req, res) => {
   try {
     const { message, phone } = req.body;
     

@@ -6,7 +6,7 @@ let currentFilter = 'all'; // Filtro actual
 
 // Conectar WebSocket para tiempo real
 function connectWebSocket() {
-    socket = io();
+    socket = io({ auth: { token: getAuthToken() } });
     
     socket.on('connect', () => {
         console.log('🔗 Conectado al WebSocket');
@@ -94,10 +94,76 @@ function showNotification(message) {
     }, 4000);
 }
 
+function setChatbotStatus(settings) {
+    const status = document.getElementById('chatbotStatus');
+    if (!status) return;
+
+    status.className = 'chatbot-status';
+    if (!settings.enabled) {
+        status.textContent = 'Apagado';
+        status.classList.add('is-paused');
+    } else if (settings.activeNow) {
+        status.textContent = 'Activo ahora';
+        status.classList.add('is-active');
+    } else {
+        status.textContent = 'Fuera de horario';
+        status.classList.add('is-paused');
+    }
+}
+
+async function loadChatbotSettings() {
+    try {
+        const response = await authFetch('/admin/api/settings/chatbot');
+        if (!response.ok) throw new Error('No se pudo cargar la configuración');
+
+        const settings = await response.json();
+        document.getElementById('chatbotEnabled').checked = settings.enabled;
+        document.getElementById('chatbotActiveFrom').value = settings.activeFrom;
+        document.getElementById('chatbotActiveUntil').value = settings.activeUntil;
+        setChatbotStatus(settings);
+    } catch (error) {
+        console.error('Error cargando configuración del chatbot:', error);
+        const status = document.getElementById('chatbotStatus');
+        if (status) status.textContent = 'No disponible';
+    }
+}
+
+async function saveChatbotSettings() {
+    const enabled = document.getElementById('chatbotEnabled').checked;
+    const activeFrom = Number(document.getElementById('chatbotActiveFrom').value);
+    const activeUntil = Number(document.getElementById('chatbotActiveUntil').value);
+
+    if (!Number.isInteger(activeFrom) || activeFrom < 0 || activeFrom > 23 ||
+        !Number.isInteger(activeUntil) || activeUntil < 0 || activeUntil > 23) {
+        alert('Ingresá horas enteras entre 0 y 23.');
+        return;
+    }
+
+    const button = document.getElementById('saveChatbotSettings');
+    button.disabled = true;
+    try {
+        const response = await authFetch('/admin/api/settings/chatbot', {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ enabled, activeFrom, activeUntil })
+        });
+        const result = await response.json();
+        if (!response.ok) throw new Error(result.error || 'No se pudo guardar la configuración');
+
+        setChatbotStatus(result);
+        showNotification(enabled ? '🤖 Configuración del chatbot guardada' : '⏸️ Chatbot global pausado');
+    } catch (error) {
+        console.error('Error guardando configuración del chatbot:', error);
+        alert(`No se pudo guardar: ${error.message}`);
+    } finally {
+        button.disabled = false;
+    }
+}
+
 async function loadData() {
     try {
         // Cargar estadísticas
-        const statsResponse = await fetch('/admin/api/stats');
+        const statsResponse = await authFetch('/admin/api/stats');
         const stats = await statsResponse.json();
         
         document.getElementById('stats').innerHTML = `
@@ -120,7 +186,7 @@ async function loadData() {
         `;
 
         // Cargar conversaciones
-        const conversationsResponse = await fetch('/admin/api/conversations');
+        const conversationsResponse = await authFetch('/admin/api/conversations');
         allConversations = await conversationsResponse.json();
         
         // Aplicar filtro actual
@@ -290,7 +356,7 @@ async function setMode(phoneNumber, mode) {
     }
     
     try {
-        const response = await fetch(`/admin/api/conversations/${phoneNumber}/${mode}`, {
+        const response = await authFetch(`/admin/api/conversations/${phoneNumber}/${mode}`, {
             method: 'POST'
         });
         
@@ -334,7 +400,7 @@ async function deleteConversation(phoneNumber) {
     }
     
     try {
-        const response = await fetch(`/admin/api/conversations/${phoneNumber}`, {
+        const response = await authFetch(`/admin/api/conversations/${phoneNumber}`, {
             method: 'DELETE'
         });
         
@@ -363,7 +429,7 @@ async function deleteConversation(phoneNumber) {
 async function viewConversation(phoneNumber) {
     try {
         currentConversation = phoneNumber;
-        const response = await fetch(`/admin/api/conversation/${phoneNumber}`);
+        const response = await authFetch(`/admin/api/conversation/${phoneNumber}`);
         const data = await response.json();
         
         // Actualizar header del chat
@@ -456,7 +522,7 @@ async function sendMessage() {
     sendBtn.disabled = true;
     
     try {
-        const response = await fetch(`/admin/api/send/${currentConversation}`, {
+        const response = await authFetch(`/admin/api/send/${currentConversation}`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ message })
@@ -467,7 +533,7 @@ async function sendMessage() {
             input.style.height = 'auto';
             
             // Verificar si ya está en modo manual antes de activarlo
-            const currentResponse = await fetch(`/admin/api/conversation/${currentConversation}`);
+            const currentResponse = await authFetch(`/admin/api/conversation/${currentConversation}`);
             const currentData = await currentResponse.json();
             
             if (!currentData.conversation.isManualMode) {
@@ -667,6 +733,7 @@ function closeModal() {
 // Conectar WebSocket y cargar datos al inicio
 connectWebSocket();
 loadData();
+loadChatbotSettings();
 
 // Auto-refresh cada 60 segundos (menos frecuente porque WebSocket maneja tiempo real)
 setInterval(loadData, 60000);

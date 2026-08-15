@@ -7,6 +7,7 @@
     "start": "node index.js",
     "dev": "nodemon index.js",
     "dev:sandbox": "cross-env NODE_ENV=development SANDBOX_MODE=true nodemon index.js",
+    "db:bootstrap": "node scripts/bootstrap-database.js",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "keywords": [
@@ -37,6 +38,6 @@
     "prisma": "^6.7.0"
   },
   "engines": {
-    "node": ">=16.0.0"
+    "node": ">=22.0.0 <23.0.0"
   }
 }
