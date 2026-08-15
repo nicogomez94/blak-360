@@ -7,9 +7,10 @@ if (!connectionString) {
   process.exit(1);
 }
 
-const needsSSL = connectionString.includes('.render.com')
+const needsSSL = connectionString.includes('sslmode=require')
+  || connectionString.includes('amazonaws')
   || connectionString.includes('oregon-postgres')
-  || connectionString.includes('sslmode=require');
+  || connectionString.includes('dpg-');
 
 const client = new Client({
   connectionString,
@@ -17,9 +18,9 @@ const client = new Client({
 });
 
 const statements = `
-  CREATE SCHEMA IF NOT EXISTS blak_twilio;
+  CREATE SCHEMA IF NOT EXISTS blak_chatbot;
 
-  CREATE OR REPLACE FUNCTION blak_twilio.update_updated_at_column()
+  CREATE OR REPLACE FUNCTION blak_chatbot.update_updated_at_column()
   RETURNS TRIGGER AS $$
   BEGIN
     NEW.updated_at = CURRENT_TIMESTAMP;
@@ -27,7 +28,7 @@ const statements = `
   END;
   $$ LANGUAGE plpgsql;
 
-  CREATE TABLE IF NOT EXISTS blak_twilio.conversations (
+  CREATE TABLE IF NOT EXISTS blak_chatbot.conversations (
     id SERIAL PRIMARY KEY,
     phone_number VARCHAR(20) UNIQUE NOT NULL,
     contact_name VARCHAR(255) DEFAULT 'Sin nombre',
@@ -41,7 +42,7 @@ const statements = `
     updated_at TIMESTAMP DEFAULT NOW()
   );
 
-  CREATE TABLE IF NOT EXISTS blak_twilio.messages (
+  CREATE TABLE IF NOT EXISTS blak_chatbot.messages (
     id SERIAL PRIMARY KEY,
     phone_number VARCHAR(20) NOT NULL,
     message_text TEXT NOT NULL,
@@ -51,7 +52,7 @@ const statements = `
     created_at TIMESTAMP DEFAULT NOW()
   );
 
-  CREATE TABLE IF NOT EXISTS blak_twilio.pricing_config (
+  CREATE TABLE IF NOT EXISTS blak_chatbot.pricing_config (
     id SERIAL PRIMARY KEY,
     service VARCHAR(50) NOT NULL,
     metric VARCHAR(50) NOT NULL,
@@ -62,10 +63,10 @@ const statements = `
     UNIQUE(service, metric)
   );
 
-  CREATE TABLE IF NOT EXISTS blak_twilio.openai_costs (
+  CREATE TABLE IF NOT EXISTS blak_chatbot.openai_costs (
     id SERIAL PRIMARY KEY,
     phone_number VARCHAR(20) NOT NULL,
-    message_id INTEGER REFERENCES blak_twilio.messages(id) ON DELETE CASCADE,
+    message_id INTEGER REFERENCES blak_chatbot.messages(id) ON DELETE CASCADE,
     model VARCHAR(50) NOT NULL,
     input_tokens INTEGER NOT NULL,
     output_tokens INTEGER NOT NULL,
@@ -77,10 +78,10 @@ const statements = `
     created_at TIMESTAMP DEFAULT NOW()
   );
 
-  CREATE TABLE IF NOT EXISTS blak_twilio.meta_costs (
+  CREATE TABLE IF NOT EXISTS blak_chatbot.meta_costs (
     id SERIAL PRIMARY KEY,
     phone_number VARCHAR(20) NOT NULL,
-    conversation_id INTEGER REFERENCES blak_twilio.conversations(id) ON DELETE CASCADE,
+    conversation_id INTEGER REFERENCES blak_chatbot.conversations(id) ON DELETE CASCADE,
     message_id VARCHAR(255),
     conversation_category VARCHAR(50) DEFAULT 'service',
     cost DECIMAL(10, 6) NOT NULL,
@@ -90,30 +91,30 @@ const statements = `
   );
 
   CREATE INDEX IF NOT EXISTS idx_conversations_phone
-    ON blak_twilio.conversations(phone_number);
+    ON blak_chatbot.conversations(phone_number);
   CREATE INDEX IF NOT EXISTS idx_conversations_last_activity
-    ON blak_twilio.conversations(last_activity);
+    ON blak_chatbot.conversations(last_activity);
   CREATE INDEX IF NOT EXISTS idx_messages_phone
-    ON blak_twilio.messages(phone_number);
+    ON blak_chatbot.messages(phone_number);
   CREATE INDEX IF NOT EXISTS idx_messages_timestamp
-    ON blak_twilio.messages(timestamp);
+    ON blak_chatbot.messages(timestamp);
   CREATE UNIQUE INDEX IF NOT EXISTS idx_messages_message_id
-    ON blak_twilio.messages(message_id) WHERE message_id IS NOT NULL;
+    ON blak_chatbot.messages(message_id) WHERE message_id IS NOT NULL;
   CREATE INDEX IF NOT EXISTS idx_openai_costs_phone
-    ON blak_twilio.openai_costs(phone_number);
+    ON blak_chatbot.openai_costs(phone_number);
   CREATE INDEX IF NOT EXISTS idx_openai_costs_created
-    ON blak_twilio.openai_costs(created_at);
+    ON blak_chatbot.openai_costs(created_at);
   CREATE INDEX IF NOT EXISTS idx_meta_costs_phone
-    ON blak_twilio.meta_costs(phone_number);
+    ON blak_chatbot.meta_costs(phone_number);
   CREATE INDEX IF NOT EXISTS idx_meta_costs_created
-    ON blak_twilio.meta_costs(created_at);
+    ON blak_chatbot.meta_costs(created_at);
 
-  DROP TRIGGER IF EXISTS update_conversations_updated_at ON blak_twilio.conversations;
+  DROP TRIGGER IF EXISTS update_conversations_updated_at ON blak_chatbot.conversations;
   CREATE TRIGGER update_conversations_updated_at
-    BEFORE UPDATE ON blak_twilio.conversations
-    FOR EACH ROW EXECUTE FUNCTION blak_twilio.update_updated_at_column();
+    BEFORE UPDATE ON blak_chatbot.conversations
+    FOR EACH ROW EXECUTE FUNCTION blak_chatbot.update_updated_at_column();
 
-  INSERT INTO blak_twilio.pricing_config (service, metric, price_per_unit, notes)
+  INSERT INTO blak_chatbot.pricing_config (service, metric, price_per_unit, notes)
   VALUES
     ('openai_gpt35', 'input_token_1k', 0.0005, 'Valor de referencia configurable'),
     ('openai_gpt35', 'output_token_1k', 0.0015, 'Valor de referencia configurable'),
@@ -125,10 +126,10 @@ async function bootstrap() {
   await client.connect();
   try {
     await client.query('BEGIN');
-    await client.query("SELECT pg_advisory_xact_lock(hashtext('blak_twilio_bootstrap'))");
+    await client.query("SELECT pg_advisory_xact_lock(hashtext('blak_chatbot_bootstrap'))");
     await client.query(statements);
     await client.query('COMMIT');
-    console.log('Esquema aislado blak_twilio listo. No se modificaron objetos de public.');
+    console.log('Esquema aislado blak_chatbot listo. No se modificaron objetos de public.');
   } catch (error) {
     await client.query('ROLLBACK');
     throw error;

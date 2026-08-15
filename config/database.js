@@ -16,9 +16,12 @@ console.log(`🔍 Base de datos configurada: ${isDatabaseConfigured}`);
 let pool = null;
 
 if (isDatabaseConfigured) {
-  // Conexiones internas de Render (sin .render.com) no usan SSL
+  // La conexión define SSL mediante sslmode=require cuando corresponde.
   const dbUrl = process.env.DATABASE_URL || '';
-  const needsSSL = dbUrl.includes('sslmode=require') && dbUrl.includes('.render.com') || dbUrl.includes('oregon-postgres') || dbUrl.includes('amazonaws');
+  const needsSSL = dbUrl.includes('sslmode=require')
+    || dbUrl.includes('amazonaws')
+    || dbUrl.includes('oregon-postgres')
+    || dbUrl.includes('dpg-');
   const config = process.env.DATABASE_URL ? {
     connectionString: dbUrl,
     ssl: needsSSL ? { rejectUnauthorized: false } : false
@@ -39,7 +42,7 @@ if (isDatabaseConfigured) {
 
   // Forzar search_path al schema aislado en cada nueva conexión del pool
   pool.on('connect', (client) => {
-    client.query("SET search_path TO blak_twilio, public");
+    client.query("SET search_path TO blak_chatbot, public");
   });
 
   // Evento para manejar errores de conexión

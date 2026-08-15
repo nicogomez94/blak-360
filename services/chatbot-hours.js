@@ -2,7 +2,7 @@
  * Ventana horaria del chatbot automático.
  *
  * El horario se evalúa en la zona configurada, no en la zona del servidor
- * (Render suele ejecutar en UTC). Por defecto el bot atiende de 18:00 a 09:00
+ * (el servidor puede ejecutarse en UTC). Por defecto el bot atiende de 18:00 a 09:00
  * hora de Argentina, dejando el horario de la operadora (09:00–18:00) libre.
  */
 

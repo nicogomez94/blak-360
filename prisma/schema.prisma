@@ -6,7 +6,7 @@ generator client {
 datasource db {
   provider = "postgresql"
   url      = env("DATABASE_URL")
-  schemas  = ["blak_twilio"]
+  schemas  = ["blak_chatbot"]
 }
 
 enum MessageSender {
@@ -14,7 +14,7 @@ enum MessageSender {
   ai
   admin
 
-  @@schema("blak_twilio")
+  @@schema("blak_chatbot")
 }
 
 model Conversation {
@@ -34,7 +34,7 @@ model Conversation {
   @@index([lastActivity], map: "idx_conversations_last_activity")
   @@index([phoneNumber], map: "idx_conversations_phone")
   @@map("conversations")
-  @@schema("blak_twilio")
+  @@schema("blak_chatbot")
 }
 
 model Message {
@@ -51,7 +51,7 @@ model Message {
   @@index([sender], map: "idx_messages_sender")
   @@index([timestamp], map: "idx_messages_timestamp")
   @@map("messages")
-  @@schema("blak_twilio")
+  @@schema("blak_chatbot")
 }
 
 model PricingConfig {
@@ -65,7 +65,7 @@ model PricingConfig {
 
   @@unique([service, metric], map: "pricing_config_service_metric_key")
   @@map("pricing_config")
-  @@schema("blak_twilio")
+  @@schema("blak_chatbot")
 }
 
 model OpenAICost {
@@ -86,7 +86,7 @@ model OpenAICost {
   @@index([phoneNumber], map: "idx_openai_costs_phone")
   @@index([createdAt], map: "idx_openai_costs_created")
   @@map("openai_costs")
-  @@schema("blak_twilio")
+  @@schema("blak_chatbot")
 }
 
 model MetaCost {
@@ -105,5 +105,5 @@ model MetaCost {
   @@index([createdAt], map: "idx_meta_costs_created")
   @@index([phoneNumber, conversationCategory, createdAt], map: "idx_meta_costs_window_lookup")
   @@map("meta_costs")
-  @@schema("blak_twilio")
+  @@schema("blak_chatbot")
 }

@@ -109,7 +109,7 @@ router.post('/whatsapp', verifyMetaSignature, async (req, res) => {
     // Agregar múltiples verificaciones para diferentes formatos
     console.log('\n🔍 ANALIZANDO FORMATO DEL WEBHOOK:');
     
-    // Formato 1: Webhook directo de 360dialog
+    // Formato 1: webhook con array de mensajes
     if (webhookData.messages) {
       console.log('✅ Formato detectado: Webhook con array de mensajes');
       console.log('📬 Cantidad de mensajes:', webhookData.messages.length);

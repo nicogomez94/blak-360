@@ -3,7 +3,7 @@
  * Integra OpenAI, Express y PostgreSQL
  */
 
-// Render inyecta las variables de producción. El archivo local se usa solo en desarrollo.
+// Las variables de producción se inyectan por el entorno; el archivo local se usa solo en desarrollo.
 if (process.env.NODE_ENV !== 'production') {
   require('dotenv').config({ path: '.env.development' });
 }
