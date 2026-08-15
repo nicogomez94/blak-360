@@ -6,21 +6,10 @@
  * hora de Argentina, dejando el horario de la operadora (09:00–18:00) libre.
  */
 
-const DEFAULT_TIMEZONE = 'America/Argentina/Buenos_Aires';
-const DEFAULT_ACTIVE_FROM = 18;
-const DEFAULT_ACTIVE_UNTIL = 9;
+const { getChatbotSettings } = require('./chatbot-settings');
 
-function readHour(name, fallback) {
-  const value = Number(process.env[name]);
-  return Number.isInteger(value) && value >= 0 && value <= 23 ? value : fallback;
-}
-
-function getChatbotSchedule() {
-  return {
-    timezone: process.env.CHATBOT_TIMEZONE || DEFAULT_TIMEZONE,
-    activeFrom: readHour('CHATBOT_ACTIVE_FROM', DEFAULT_ACTIVE_FROM),
-    activeUntil: readHour('CHATBOT_ACTIVE_UNTIL', DEFAULT_ACTIVE_UNTIL)
-  };
+async function getChatbotSchedule() {
+  return getChatbotSettings();
 }
 
 function getLocalHour(date, timezone) {
@@ -34,8 +23,8 @@ function getLocalHour(date, timezone) {
   return hour === 24 ? 0 : hour;
 }
 
-function isWithinChatbotWindow(date = new Date()) {
-  const { activeFrom, activeUntil, timezone } = getChatbotSchedule();
+function isWithinChatbotWindow(date, schedule) {
+  const { activeFrom, activeUntil, timezone } = schedule;
   const hour = getLocalHour(date, timezone);
 
   if (activeFrom === activeUntil) return true;
@@ -45,8 +34,9 @@ function isWithinChatbotWindow(date = new Date()) {
   return hour >= activeFrom && hour < activeUntil;
 }
 
-function isChatbotActiveNow(date = new Date()) {
-  return process.env.CHATBOT_ENABLED === 'true' && isWithinChatbotWindow(date);
+async function isChatbotActiveNow(date = new Date()) {
+  const schedule = await getChatbotSchedule();
+  return schedule.enabled && isWithinChatbotWindow(date, schedule);
 }
 
 module.exports = {

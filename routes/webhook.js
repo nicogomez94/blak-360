@@ -210,8 +210,8 @@ router.post('/whatsapp', verifyMetaSignature, async (req, res) => {
       return;
     }
 
-    if (!isChatbotActiveNow()) {
-      const schedule = getChatbotSchedule();
+    if (!(await isChatbotActiveNow())) {
+      const schedule = await getChatbotSchedule();
       console.log(`⏸️ Chatbot automático pausado fuera de horario (${schedule.activeFrom}:00–${schedule.activeUntil}:00, ${schedule.timezone}) o por configuración`);
       return;
     }

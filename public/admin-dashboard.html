@@ -24,6 +24,33 @@
             <!-- Se carga dinámicamente -->
         </div>
 
+        <section class="chatbot-settings" aria-labelledby="chatbot-settings-title">
+            <div class="chatbot-settings-header">
+                <div>
+                    <h2 id="chatbot-settings-title">Configuración del chatbot</h2>
+                    <p>Control global. Cuando está apagado, nunca responde automáticamente.</p>
+                </div>
+                <span class="chatbot-status" id="chatbotStatus">Cargando…</span>
+            </div>
+            <div class="chatbot-settings-fields">
+                <label class="chatbot-toggle" for="chatbotEnabled">
+                    <input id="chatbotEnabled" type="checkbox">
+                    <span class="chatbot-toggle-track" aria-hidden="true"></span>
+                    <span>Activar respuestas automáticas</span>
+                </label>
+                <label>
+                    Empieza a las
+                    <input id="chatbotActiveFrom" type="number" min="0" max="23" step="1" inputmode="numeric" aria-label="Hora de inicio">
+                </label>
+                <label>
+                    Termina a las
+                    <input id="chatbotActiveUntil" type="number" min="0" max="23" step="1" inputmode="numeric" aria-label="Hora de finalización">
+                </label>
+                <button class="save-settings-btn" id="saveChatbotSettings" type="button" onclick="saveChatbotSettings()">Guardar configuración</button>
+            </div>
+            <p class="chatbot-settings-help">Horario de Argentina. Ejemplo: de 18 a 9 cubre la noche; si ambas horas son iguales, queda activo las 24 horas.</p>
+        </section>
+
         <div class="conversations">
             <div class="conversations-header">
                 <h2>Conversaciones Activas</h2>

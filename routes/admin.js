@@ -8,6 +8,8 @@ const path = require('path');
 const conversationService = require('../services/conversation');
 const messageService = require('../services/messaging');
 const { requireAuth } = require('../middleware/auth');
+const { getChatbotSettings, updateChatbotSettings } = require('../services/chatbot-settings');
+const { isWithinChatbotWindow } = require('../services/chatbot-hours');
 
 /**
  * Dashboard principal - Servir archivo HTML estático
@@ -18,6 +20,40 @@ router.get('/', (req, res) => {
 });
 
 router.use(requireAuth);
+
+/**
+ * API: Leer la configuración operativa global del chatbot.
+ */
+router.get('/api/settings/chatbot', async (req, res) => {
+  try {
+    const settings = await getChatbotSettings();
+    res.json({
+      ...settings,
+      activeNow: settings.enabled && isWithinChatbotWindow(new Date(), settings)
+    });
+  } catch (error) {
+    console.error('Error obteniendo configuración del chatbot:', error);
+    res.status(500).json({ error: 'No se pudo obtener la configuración del chatbot' });
+  }
+});
+
+/**
+ * API: Actualizar encendido y horario global del chatbot.
+ */
+router.put('/api/settings/chatbot', async (req, res) => {
+  try {
+    const settings = await updateChatbotSettings(req.body);
+    console.log(`⚙️ Configuración de chatbot actualizada por ${req.adminSession?.username || 'admin'}`);
+    res.json({
+      success: true,
+      ...settings,
+      activeNow: settings.enabled && isWithinChatbotWindow(new Date(), settings)
+    });
+  } catch (error) {
+    console.error('Error actualizando configuración del chatbot:', error);
+    res.status(400).json({ error: error.message });
+  }
+});
 
 /**
  * API: Obtener estadísticas

@@ -209,7 +209,8 @@ app.get('/health', async (req, res) => {
     // Obtener estadísticas (funciona con o sin DB)
     stats = await conversationService.getStats();
     
-    const schedule = getChatbotSchedule();
+    const schedule = await getChatbotSchedule();
+    const chatbotActiveNow = await isChatbotActiveNow();
     res.json({
       status: 'OK',
       message: 'Servidor funcionando correctamente',
@@ -219,8 +220,8 @@ app.get('/health', async (req, res) => {
       storage: db.isDatabaseConfigured ? 'postgresql' : 'memory',
       environment: {
         NODE_ENV: process.env.NODE_ENV || 'development',
-        chatbot_enabled: process.env.CHATBOT_ENABLED === 'true',
-        chatbot_active_now: isChatbotActiveNow(),
+        chatbot_enabled: schedule.enabled,
+        chatbot_active_now: chatbotActiveNow,
         chatbot_schedule: {
           active_from: schedule.activeFrom,
           active_until: schedule.activeUntil,
