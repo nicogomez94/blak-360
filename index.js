@@ -25,9 +25,20 @@ const { getChatbotSchedule, isChatbotActiveNow } = require('./services/chatbot-h
 const db = require('./config/database');
 const { testConnection } = require('./config/database-init');
 
+const allowedOrigins = (process.env.CHATBOT_ALLOWED_ORIGINS || 'https://blak.com.ar,https://www.blak.com.ar')
+  .split(',')
+  .map((origin) => origin.trim())
+  .filter(Boolean);
+
 const app = express();
 const server = http.createServer(app);
-const io = new Server(server);
+const io = new Server(server, {
+  cors: {
+    origin: allowedOrigins,
+    methods: ['GET', 'POST'],
+    allowedHeaders: ['Authorization', 'Content-Type']
+  }
+});
 const PORT = process.env.PORT || 3001;
 
 // Configurar WebSocket para tiempo real
@@ -59,6 +70,22 @@ global.io = io;
 
 // Middleware para parsear el body de las peticiones
 app.set('trust proxy', 1);
+app.use((req, res, next) => {
+  const origin = req.get('origin');
+
+  if (origin && allowedOrigins.includes(origin)) {
+    res.setHeader('Access-Control-Allow-Origin', origin);
+    res.setHeader('Vary', 'Origin');
+    res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, PATCH, DELETE, OPTIONS');
+    res.setHeader('Access-Control-Allow-Headers', 'Authorization, Content-Type');
+  }
+
+  if (req.method === 'OPTIONS') {
+    return res.sendStatus(204);
+  }
+
+  next();
+});
 app.use(bodyParser.urlencoded({ extended: false }));
 app.use(bodyParser.json({
   verify: (req, res, buffer) => {
